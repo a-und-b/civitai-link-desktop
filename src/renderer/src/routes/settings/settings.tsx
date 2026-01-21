@@ -32,7 +32,7 @@ export function Settings() {
     DEBUG,
     isExperimental,
   } = useElectron();
-  const { setNSFW, setAlwaysOnTop, restartApp, setConcurrent } = useApi();
+  const { setNSFW, setAlwaysOnTop, restartApp, setConcurrent, setBaseModelSubfolders } = useApi();
 
   return (
     <PanelWrapper>
@@ -83,6 +83,22 @@ export function Settings() {
                 className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
               >
                 Window always on top
+              </label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="baseModelSubfolders"
+                checked={settings.baseModelSubfolders}
+                onCheckedChange={(checked: boolean) => setBaseModelSubfolders(checked)}
+              />
+              <label
+                htmlFor="baseModelSubfolders"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex flex-col gap-1"
+              >
+                Organize LoRAs by Base Model
+                <span className="text-xs text-muted-foreground font-normal">
+                  Automatically save LoRAs, LoCons, and DoRAs into subfolders based on their base model (e.g., loras/F1D/, loras/SDXL/)
+                </span>
               </label>
             </div>
             {DEBUG ? (

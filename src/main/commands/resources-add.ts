@@ -4,7 +4,7 @@ import { BrowserWindow } from 'electron';
 import { getModelByHash } from '../civitai-api';
 import { downloadFile } from '../download-file';
 import { updateActivity } from '../store/activities';
-import { getResourcePath } from '../store/paths';
+import { getResourcePathWithBaseModel } from '../store/paths';
 
 type ResourcesAddParams = {
   id: string;
@@ -16,7 +16,6 @@ type ResourcesAddParams = {
 export async function resourcesAdd(params: ResourcesAddParams) {
   const payload = params.payload;
   const hashLowercase = payload.hash.toLowerCase();
-  const resourcePath = getResourcePath(payload.type);
   const {
     previewImageUrl,
     civitaiUrl,
@@ -24,6 +23,7 @@ export async function resourcesAdd(params: ResourcesAddParams) {
     baseModel,
     trainedWords,
   } = await getModelByHash(hashLowercase);
+  const resourcePath = getResourcePathWithBaseModel(payload.type, baseModel);
   const timestamp = new Date().toISOString();
 
   params.socket.emit('commandStatus', {

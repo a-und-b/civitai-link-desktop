@@ -27,6 +27,8 @@ const api = {
   setNSFW: (nsfw: boolean) => ipcRenderer.send('set-nsfw', nsfw),
   setConcurrent: (concurrent: number) =>
     ipcRenderer.send('set-concurrent', concurrent),
+  setBaseModelSubfolders: (baseModelSubfolders: boolean) =>
+    ipcRenderer.send('set-base-model-subfolders', baseModelSubfolders),
   openModelFileFolder: (filePath: string) =>
     ipcRenderer.send('open-model-file-folder', filePath),
   setApiKey: (key: string) => ipcRenderer.send('set-api-key', key),

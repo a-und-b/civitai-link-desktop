@@ -60,6 +60,7 @@ const schema: Schema<Record<string, unknown>> = {
       nsfw: false,
       concurrent: 10,
       alwaysOnTop: false,
+      baseModelSubfolders: false,
     },
   },
   apiKey: {
@@ -122,6 +123,7 @@ type Settings = {
   nsfw?: boolean;
   alwaysOnTop?: boolean;
   concurrent?: number;
+  baseModelSubfolders?: boolean;
 };
 
 export function getSettings() {
@@ -136,7 +138,7 @@ export function setSettings(settings: Settings) {
 
 export function clearSettings() {
   // TODO: I dont think this works from the store
-  store.set('settings', { nsfw: false, alwaysOnTop: false, concurrent: 10 });
+  store.set('settings', { nsfw: false, alwaysOnTop: false, concurrent: 10, baseModelSubfolders: false });
   store.set('apiKey', null);
   store.set('user', null);
   store.set('apiKey', null);

@@ -40,6 +40,9 @@ export function useApi() {
     setConcurrent: async (concurrent: number) => {
       return await window.api.setConcurrent(concurrent);
     },
+    setBaseModelSubfolders: async (baseModelSubfolders: boolean) => {
+      return await window.api.setBaseModelSubfolders(baseModelSubfolders);
+    },
     openModelFileFolder: async (filePath: string) => {
       return await window.api.openModelFileFolder(filePath);
     },

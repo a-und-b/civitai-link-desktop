@@ -5,6 +5,7 @@ import { getWindow } from '../browser-window';
 import { eventClearSettings } from './clear-settings';
 import { eventSetAlwaysOnTop } from './set-always-on-top';
 import { eventSetApiKey } from './set-api-key';
+import { eventSetBaseModelSubfolders } from './set-base-model-subfolders';
 import { eventSetKey } from './set-key';
 import { eventSetNSFW } from './set-nsfw';
 import { eventSetPath } from './set-path';
@@ -59,6 +60,7 @@ export function eventsListeners() {
   ipcMain.on('set-path', eventSetPath);
   ipcMain.on('set-nsfw', eventSetNSFW);
   ipcMain.on('set-concurrent', eventSetConcurrent);
+  ipcMain.on('set-base-model-subfolders', eventSetBaseModelSubfolders);
   ipcMain.on('set-always-on-top', (_, alwaysOnTop) => {
     mainWindow.setAlwaysOnTop(alwaysOnTop);
 
