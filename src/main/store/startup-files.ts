@@ -1,3 +1,4 @@
+import { app } from 'electron';
 import Store, { Schema } from 'electron-store';
 import difference from 'lodash/difference';
 import { findFileByFilename, updateFile } from './files';
@@ -10,7 +11,9 @@ const schema: Schema<Record<string, unknown>> = {
   },
 };
 
-export const store = new Store({ schema });
+const storeName = app.isPackaged ? undefined : 'experimental';
+
+export const store = new Store({ schema, name: storeName });
 
 export function diffDirectories(filesInDirs: string[]): string[] {
   // Get existing list

@@ -67,28 +67,29 @@ export function createWindow() {
       mainWindow.webContents.send('upgrade-key', { key: upgradeKey });
     }
 
-    try {
-      // Use a promise, we need to wait for base data to load.
-      new Promise(async (resolve) => {
-        const data = {
-          ...getUIStore(),
-          ...(await setupCommons()),
-          vaultMeta: await getVaultMeta(),
-          vault: await getVault(),
-          files: await getFiles(),
-          activities: await getActivities(),
-          appVersion: app.getVersion(),
-          DEBUG,
-        };
+      try {
+        // Use a promise, we need to wait for base data to load.
+        new Promise(async (resolve) => {
+          const data = {
+            ...getUIStore(),
+            ...(await setupCommons()),
+            vaultMeta: await getVaultMeta(),
+            vault: await getVault(),
+            files: await getFiles(),
+            activities: await getActivities(),
+            appVersion: app.getVersion(),
+            DEBUG,
+            isExperimental: !app.isPackaged,
+          };
 
-        resolve(data);
-      }).then((data) => {
-        mainWindow.webContents.send('store-ready', data);
-        mainWindow.webContents.send('app-ready', true);
-      });
-    } catch (error) {
-      console.error('Error sending store-ready event:', error);
-    }
+          resolve(data);
+        }).then((data) => {
+          mainWindow.webContents.send('store-ready', data);
+          mainWindow.webContents.send('app-ready', true);
+        });
+      } catch (error) {
+        console.error('Error sending store-ready event:', error);
+      }
   });
 
   mainWindow.on('close', function (event) {

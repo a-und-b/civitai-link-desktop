@@ -1,3 +1,4 @@
+import { app } from 'electron';
 import Store, { Schema } from 'electron-store';
 import { fetchEnums } from '../civitai-api';
 
@@ -36,7 +37,9 @@ const schema: Schema<{ enums: ApiEnums }> = {
   },
 };
 
-export const store = new Store({ schema });
+const storeName = app.isPackaged ? undefined : 'experimental';
+
+export const store = new Store({ schema, name: storeName });
 
 export async function setupCommons() {
   const enums = await fetchEnums();

@@ -1,3 +1,4 @@
+import { app } from 'electron';
 import Store, { Schema } from 'electron-store';
 import path from 'path';
 import { getWindow } from '../browser-window';
@@ -14,7 +15,9 @@ const schema: Schema<Record<string, unknown>> = {
   },
 };
 
-export const store = new Store({ schema });
+const storeName = app.isPackaged ? undefined : 'experimental';
+
+export const store = new Store({ schema, name: storeName });
 
 export async function addFile(file: Resource) {
   const stats = await fileStats(file.localPath);

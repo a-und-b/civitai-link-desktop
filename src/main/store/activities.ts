@@ -1,3 +1,4 @@
+import { app } from 'electron';
 import Store, { Schema } from 'electron-store';
 import { getWindow } from '../browser-window';
 
@@ -8,7 +9,9 @@ const schema: Schema<Record<string, unknown>> = {
   },
 };
 
-export const store = new Store({ schema });
+const storeName = app.isPackaged ? undefined : 'experimental';
+
+export const store = new Store({ schema, name: storeName });
 
 export function updateActivity(activity: ActivityItem) {
   const activities = store.get('activities') as ActivityItem[];

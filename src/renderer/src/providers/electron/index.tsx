@@ -16,6 +16,7 @@ type ElectronContextType = {
   updateAvailable: boolean;
   enums: ApiEnums | null;
   DEBUG: boolean;
+  isExperimental: boolean;
 };
 
 const defaultValue: ElectronContextType = {
@@ -32,6 +33,7 @@ const defaultValue: ElectronContextType = {
   updateAvailable: false,
   enums: null,
   DEBUG: false,
+  isExperimental: false,
 };
 
 const ElectronContext = createContext<ElectronContextType>(defaultValue);
@@ -53,6 +55,7 @@ export function ElectronProvider({ children }: { children: React.ReactNode }) {
   const [updateAvailable, setUpdateAvailable] = useState<boolean>(false);
   const [debug, setDebug] = useState<boolean>(false);
   const [enums, setEnums] = useState<ApiEnums | null>(null);
+  const [isExperimental, setIsExperimental] = useState<boolean>(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -108,6 +111,7 @@ export function ElectronProvider({ children }: { children: React.ReactNode }) {
       setAppVersion(message.appVersion);
       setDebug(message.DEBUG);
       setEnums(message.enums);
+      setIsExperimental(message.isExperimental || false);
     });
 
     return () => {
@@ -196,6 +200,7 @@ export function ElectronProvider({ children }: { children: React.ReactNode }) {
         updateAvailable,
         DEBUG: debug,
         enums,
+        isExperimental,
       }}
     >
       {children}

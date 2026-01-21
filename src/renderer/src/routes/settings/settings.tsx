@@ -24,8 +24,14 @@ import { ResourceType } from '@/types';
 import { RefreshCcw } from 'lucide-react';
 
 export function Settings() {
-  const { clearSettings, settings, appVersion, updateAvailable, DEBUG } =
-    useElectron();
+  const {
+    clearSettings,
+    settings,
+    appVersion,
+    updateAvailable,
+    DEBUG,
+    isExperimental,
+  } = useElectron();
   const { setNSFW, setAlwaysOnTop, restartApp, setConcurrent } = useApi();
 
   return (
@@ -41,6 +47,11 @@ export function Settings() {
                 onClick={restartApp}
               />
             ) : null}
+            {isExperimental && (
+              <span className="px-2 py-1 text-xs font-semibold rounded-md bg-yellow-500/20 text-yellow-500 border border-yellow-500/30">
+                EXPERIMENTAL
+              </span>
+            )}
             <p className="text-sm text-primary">v{appVersion}</p>
           </div>
         </div>

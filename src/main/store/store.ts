@@ -1,3 +1,4 @@
+import { app } from 'electron';
 import Store, { Schema } from 'electron-store';
 import { fetchMember } from '../civitai-api';
 
@@ -71,7 +72,9 @@ const schema: Schema<Record<string, unknown>> = {
   },
 };
 
-export const store = new Store({ schema });
+const storeName = app.isPackaged ? undefined : 'experimental';
+
+export const store = new Store({ schema, name: storeName });
 
 export function setKey(key: string | null) {
   store.set('key', key);

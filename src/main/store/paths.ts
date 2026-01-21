@@ -40,8 +40,10 @@ const schema: Schema<Record<string, unknown>> = {
   },
 };
 
+const storeName = app.isPackaged ? undefined : 'experimental';
+
 // Check if paths set in store and migrate over at startup
-export const store = new Store({ schema });
+export const store = new Store({ schema, name: storeName });
 
 export function getRootResourcePath(): string {
   return store.get('rootResourcePath') as string;
