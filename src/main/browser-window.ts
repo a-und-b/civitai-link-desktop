@@ -14,7 +14,8 @@ import { clearTempFolders } from './utils/clear-temp-folders';
 
 const DEBUG = import.meta.env.MAIN_VITE_DEBUG === 'true' || false;
 let mainWindow;
-let isQuiting = DEBUG;
+// In development (not packaged), always quit instead of hiding
+let isQuiting = DEBUG || !app.isPackaged;
 
 //defaults
 let width = getUpgradeKey() ? 1060 : 400;
