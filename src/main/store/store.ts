@@ -286,6 +286,7 @@ export function watcherUser({
 
 export function getUIStore() {
   return {
+    key: store.get('key'),
     rootResourcePath: store.get('rootResourcePath'),
     connectionStatus: store.get('connectionStatus'),
     settings: store.get('settings') as Settings,
@@ -302,8 +303,22 @@ export function setRootResourcePath(path: string) {
   store.set('rootResourcePath', path);
 }
 
+/**
+ * Normalize resource type to the canonical store key (Resources enum value).
+ * The store uses enum values like 'Lora', 'Checkpoint' as keys - not 'LORA'.
+ * This ensures consistent key casing for case-sensitive filesystems.
+ */
+function getResourceStoreKey(resource: string): string {
+  const resourceUpper = resource.toUpperCase();
+  const resourceKey = Object.keys(Resources).find(
+    (k) => k === resourceUpper,
+  ) as keyof typeof Resources | undefined;
+  return resourceKey ? Resources[resourceKey] : resource;
+}
+
 export function setResourcePath(resource: string, path: string) {
-  store.set(`resourcePaths.${resource}`, path);
+  const storeKey = getResourceStoreKey(resource);
+  store.set(`resourcePaths.${storeKey}`, path);
   initFolderCheck();
 
   return;
@@ -358,7 +373,11 @@ export function getResourcePath(resourcePath: string) {
     [k: string]: string;
   };
 
-  if (!resourcePaths[resourceValue] || resourcePaths[resourceValue] === '') {
+  // Check canonical key first, then uppercase (for backwards compatibility with old data)
+  const storedPath =
+    resourcePaths[resourceValue] || resourcePaths[resourcePath.toUpperCase()];
+
+  if (!storedPath || storedPath === '') {
     const rootResourcePath = getRootResourcePath();
     const sdType = store.get('sdType') as string;
 
@@ -380,42 +399,13 @@ export function getResourcePath(resourcePath: string) {
     return path.join(rootResourcePath || app.getPath('home'), subfolder);
   }
 
-  return resourcePaths[resourceValue];
+  return storedPath;
 }
 
 export function getAllPaths() {
-  const resourcePaths = store.get('resourcePaths') as {
-    [k: string]: string;
-  };
-  const rootResourcePath = getRootResourcePath();
-  const sdType = store.get('sdType') as string;
-
-  return Object.keys(resourcePaths).map((key) => {
-    const uppercaseKey = key.toUpperCase();
-    if (!resourcePaths[uppercaseKey] || resourcePaths[uppercaseKey] === '') {
-      const PATHS = {
-        ...SYMLINK,
-        ...(sdType === 'a1111'
-          ? A1111_PATHS
-          : sdType === 'comfyui'
-            ? COMFY_UI_PATHS
-            : {}),
-      };
-
-      const subfolder = PATHS[uppercaseKey];
-      if (!subfolder) {
-        // Skip paths that don't have a valid mapping
-        return '';
-      }
-
-      return path.join(
-        rootResourcePath || app.getPath('home'),
-        subfolder,
-      );
-    }
-
-    return resourcePaths[uppercaseKey];
-  }).filter(p => p !== ''); // Filter out empty paths
+  // Use getResourcePath for each resource type to ensure consistent key handling
+  const resourceKeys = Object.keys(Resources) as Array<keyof typeof Resources>;
+  return resourceKeys.map((key) => getResourcePath(key)).filter((p) => p !== '');
 }
 
 /**

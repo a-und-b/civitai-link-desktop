@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import uniqBy from 'lodash/uniqBy';
-import { getAllPaths, getRootResourcePath } from './store/store';
+import { getAllPaths } from './store/store';
 
 const FILE_TYPES = ['.pt', '.safetensors', '.ckpt', '.bin'];
 const EXCLUDE_TYPES = ['/temp/', '.json', '.png'];

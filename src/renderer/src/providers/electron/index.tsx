@@ -114,6 +114,7 @@ export function ElectronProvider({ children }: { children: React.ReactNode }) {
   // Get initial store on load
   useEffect(() => {
     ipcRenderer.on('store-ready', function (_, message) {
+      setKey(message.key ?? null);
       setActivityList(message.activities);
       setRootResourcePath(message.rootResourcePath);
       setConnectionStatus(message.connectionStatus);
@@ -128,6 +129,16 @@ export function ElectronProvider({ children }: { children: React.ReactNode }) {
 
     return () => {
       ipcRenderer.removeAllListeners('store-ready');
+    };
+  }, []);
+
+  useEffect(() => {
+    ipcRenderer.on('key-update', function (_, key: string) {
+      setKey(key);
+    });
+
+    return () => {
+      ipcRenderer.removeAllListeners('key-update');
     };
   }, []);
 
