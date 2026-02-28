@@ -10,7 +10,13 @@ type ElectronContextType = {
   activityList: ActivityItem[];
   connectionStatus: ConnectionStatus;
   rootResourcePath: string | null;
-  settings: { nsfw: boolean; alwaysOnTop: boolean; concurrent: number; baseModelSubfolders: boolean };
+  settings: { 
+    nsfw: boolean; 
+    alwaysOnTop: boolean; 
+    concurrent: number; 
+    baseModelSubfolders: boolean;
+    scanOnStartup: boolean;
+  };
   user?: object | null;
   appVersion: string;
   updateAvailable: boolean;
@@ -27,7 +33,13 @@ const defaultValue: ElectronContextType = {
   activityList: [],
   connectionStatus: ConnectionStatus.DISCONNECTED,
   rootResourcePath: null,
-  settings: { nsfw: false, alwaysOnTop: false, concurrent: 10, baseModelSubfolders: false },
+  settings: { 
+    nsfw: false, 
+    alwaysOnTop: false, 
+    concurrent: 10, 
+    baseModelSubfolders: false,
+    scanOnStartup: false 
+  },
   user: null,
   appVersion: '',
   updateAvailable: false,

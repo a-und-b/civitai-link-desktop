@@ -8,7 +8,7 @@ import { v4 as uuid } from 'uuid';
 import { filterResourcesList } from './commands/filter-reources-list';
 import { updateActivity } from './store/activities';
 import { addFile } from './store/files';
-import { getRootResourcePath } from './store/paths';
+import { getRootResourcePath } from './store/store';
 import { getSettings } from './store/store';
 import { findOrCreateFolder } from './utils/find-or-create-folder';
 import { readMetadata } from './utils/read-metadata';

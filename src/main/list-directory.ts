@@ -1,23 +1,22 @@
 import fs from 'fs';
 import path from 'path';
 import uniqBy from 'lodash/uniqBy';
-import { getAllPaths, getRootResourcePath } from './store/paths';
+import { getAllPaths, getRootResourcePath } from './store/store';
 
 const FILE_TYPES = ['.pt', '.safetensors', '.ckpt', '.bin'];
 const EXCLUDE_TYPES = ['/temp/', '.json', '.png'];
 
 export function listDirectories() {
-  const modelDirectory = getRootResourcePath();
   const modelDirectories = getAllPaths();
-
-  if (!modelDirectory) {
-    return [];
-  }
 
   const filesInDirs = modelDirectories
     .map((directory) => {
-      if (!fs.existsSync(directory)) return [];
-
+      if (!fs.existsSync(directory)) {
+        console.log(`[List Directories] Directory not found: ${directory}`);
+        return [];
+      }
+      
+      console.log(`[List Directories] Scanning: ${directory}`);
       return fs
         .readdirSync(directory, { recursive: true })
         .filter(filterFileTypes)
@@ -38,11 +37,13 @@ export function listDirectory(directory: string) {
 }
 
 function filterFileTypes(file: string | Buffer) {
-  if (EXCLUDE_TYPES.some((x) => !file.includes(x))) {
-    return FILE_TYPES.some((x) => file.includes(x));
+  // Exclude files containing any exclude pattern
+  if (EXCLUDE_TYPES.some((x) => file.includes(x))) {
+    return false;
   }
-
-  return true;
+  
+  // Include only valid model file types
+  return FILE_TYPES.some((x) => file.includes(x));
 }
 
 function mapFiles(file: string | Buffer, directory: string) {

@@ -27,9 +27,17 @@ export function ModelLoadingProvider({
   });
 
   useEffect(() => {
+    console.log('[ModelLoadingProvider] Registering model-loading listener');
+    
     ipcRenderer.on(
       'model-loading',
       function (_, { toScan, scanned, isScanning }) {
+        console.log('[ModelLoadingProvider] Received update:', {
+          toScan,
+          scanned,
+          isScanning,
+          progress: toScan > 0 ? Math.round((scanned / toScan) * 100) : 0,
+        });
         setData({
           toScan,
           scanned,
@@ -39,9 +47,10 @@ export function ModelLoadingProvider({
     );
 
     return () => {
+      console.log('[ModelLoadingProvider] Cleaning up model-loading listener');
       ipcRenderer.removeAllListeners('model-loading');
     };
-  });
+  }, []);
 
   return (
     <ModelLoadingContext.Provider

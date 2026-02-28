@@ -100,11 +100,16 @@ export function Nav({ links, isCollapsed }: NavProps) {
       </nav>
       {isScanning ? (
         <div className="px-4">
-          <Progress value={(100 * scanned) / toScan} />
+          <Progress value={toScan > 0 ? (100 * scanned) / toScan : 0} className="h-2" />
           <div className="flex-row flex justify-between w-full mt-2">
             <div>
               <p className="text-xs text-[#909296] leading-none">
                 Loading Models
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-[#909296] leading-none">
+                {toScan > 0 ? Math.round((scanned / toScan) * 100) : 0}%
               </p>
             </div>
           </div>

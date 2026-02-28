@@ -21,7 +21,9 @@ import { useApi } from '@/hooks/use-api';
 import { PanelWrapper } from '@/layout/panel-wrapper';
 import { useElectron } from '@/providers/electron';
 import { ResourceType } from '@/types';
-import { RefreshCcw } from 'lucide-react';
+import { RefreshCcw, FolderSync } from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
+import { useState } from 'react';
 
 export function Settings() {
   const {
@@ -32,7 +34,56 @@ export function Settings() {
     DEBUG,
     isExperimental,
   } = useElectron();
-  const { setNSFW, setAlwaysOnTop, restartApp, setConcurrent, setBaseModelSubfolders } = useApi();
+  const { setNSFW, setAlwaysOnTop, restartApp, setConcurrent, setBaseModelSubfolders, sortLoraFiles, fullRescan, setScanOnStartup } = useApi();
+  const { toast } = useToast();
+  const [isSorting, setIsSorting] = useState(false);
+  const [isRescanning, setIsRescanning] = useState(false);
+
+  const handleFullRescan = async () => {
+    setIsRescanning(true);
+    try {
+      await fullRescan();
+      toast({
+        title: 'Full Rescan Started',
+        description: 'Scanning all model folders from scratch...',
+      });
+    } catch (error) {
+      toast({
+        title: 'Error Starting Rescan',
+        description: error instanceof Error ? error.message : 'An unknown error occurred',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsRescanning(false);
+    }
+  };
+
+  const handleSortLoras = async () => {
+    setIsSorting(true);
+    try {
+      const result = await sortLoraFiles();
+      
+      const successMessage = `Sorting complete! Moved: ${result.moved}, Unknown: ${result.unknown}${result.errors > 0 ? `, Errors: ${result.errors}` : ''}`;
+      
+      toast({
+        title: 'LoRA Sorting Complete',
+        description: successMessage,
+        variant: result.errors > 0 ? 'destructive' : 'default',
+      });
+
+      if (result.errors > 0 && result.errorDetails.length > 0) {
+        console.error('Sort errors:', result.errorDetails);
+      }
+    } catch (error) {
+      toast({
+        title: 'Error Sorting LoRAs',
+        description: error instanceof Error ? error.message : 'An unknown error occurred',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSorting(false);
+    }
+  };
 
   return (
     <PanelWrapper>
@@ -100,6 +151,92 @@ export function Settings() {
                   Automatically save LoRAs, LoCons, and DoRAs into subfolders based on their base model (e.g., loras/F1D/, loras/SDXL/)
                 </span>
               </label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="scanOnStartup"
+                checked={settings.scanOnStartup}
+                onCheckedChange={(checked: boolean) => setScanOnStartup(checked)}
+              />
+              <label
+                htmlFor="scanOnStartup"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex flex-col gap-1"
+              >
+                Scan for models on startup
+                <span className="text-xs text-muted-foreground font-normal">
+                  Automatically scan all model folders when the application starts. Can be slow for large libraries.
+                </span>
+              </label>
+            </div>
+            <div className="flex flex-col gap-2">
+              <div className="flex gap-2">
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      className="w-fit"
+                      disabled={isSorting}
+                    >
+                      <FolderSync className="mr-2 h-4 w-4" />
+                      {isSorting ? 'Sorting...' : 'Sort Existing LoRAs'}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Sort Existing LoRA Files?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will scan your LoRA folder for unorganized files at the root level, 
+                        identify them using Civitai's API, and move them into base model subfolders 
+                        (e.g., SDXL/, Pony/, Flux/).
+                        <br /><br />
+                        Files not found on Civitai will be moved to an "Unknown" subfolder.
+                        <br /><br />
+                        This operation cannot be easily undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleSortLoras}>
+                        Sort Files
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      className="w-fit"
+                      disabled={isRescanning}
+                    >
+                      <RefreshCcw className="mr-2 h-4 w-4" />
+                      {isRescanning ? 'Rescanning...' : 'Full Rescan'}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Perform Full Rescan?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will clear all cached file data and re-scan your model folders from scratch.
+                        <br /><br />
+                        Use this if you notice missing files, incorrect metadata, or other discrepancies.
+                        <br /><br />
+                        This may take a while depending on the size of your library.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleFullRescan}>
+                        Start Rescan
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Manage your library organization and data consistency
+              </p>
             </div>
             {DEBUG ? (
               <div className="flex items-center space-x-2">

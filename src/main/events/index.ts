@@ -11,6 +11,7 @@ import { eventSetNSFW } from './set-nsfw';
 import { eventSetPath } from './set-path';
 import { eventSetRootPath } from './set-root-path';
 import { eventSetStableDiffusion } from './set-stable-diffusion';
+import { eventSetScanOnStartup } from './set-scan-on-startup';
 
 // App Events
 import { eventCloseApp } from './close-app';
@@ -28,6 +29,8 @@ import { eventSearchFile } from './search-file';
 import { eventDownloadVaultItem } from './download-vault-item';
 import { eventGetFileByHash } from './files';
 import { eventSetConcurrent } from './set-concurrent';
+import { eventSortLoraFiles } from './sort-lora-files';
+import { eventFullRescan } from './full-rescan';
 import {
   eventFetchVaultMeta,
   eventFetchVaultModels,
@@ -69,6 +72,7 @@ export function eventsListeners() {
   ipcMain.on('set-api-key', eventSetApiKey);
   ipcMain.on('set-stable-diffusion', eventSetStableDiffusion);
   ipcMain.on('save-file-notes', eventSaveFileNotes);
+  ipcMain.on('set-scan-on-startup', eventSetScanOnStartup);
 
   // Misc
   ipcMain.on('resource-remove', (_, resource) =>
@@ -88,4 +92,6 @@ export function eventsListeners() {
   ipcMain.handle('fetch-file-notes', eventFetchFileNotes);
   ipcMain.on('download-vault-item', eventDownloadVaultItem);
   ipcMain.handle('get-file-by-hash', eventGetFileByHash);
+  ipcMain.handle('sort-lora-files', eventSortLoraFiles);
+  ipcMain.handle('full-rescan', eventFullRescan);
 }

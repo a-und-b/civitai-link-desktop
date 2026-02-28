@@ -43,6 +43,9 @@ export function useApi() {
     setBaseModelSubfolders: async (baseModelSubfolders: boolean) => {
       return await window.api.setBaseModelSubfolders(baseModelSubfolders);
     },
+    setScanOnStartup: async (scanOnStartup: boolean) => {
+      return await window.api.setScanOnStartup(scanOnStartup);
+    },
     openModelFileFolder: async (filePath: string) => {
       return await window.api.openModelFileFolder(filePath);
     },
@@ -101,6 +104,12 @@ export function useApi() {
     },
     fetchEnums: async () => {
       return await window.api.fetchEnums();
-    }
+    },
+    sortLoraFiles: async () => {
+      return await window.api.sortLoraFiles();
+    },
+    fullRescan: async () => {
+      return await window.api.fullRescan();
+    },
   };
 }

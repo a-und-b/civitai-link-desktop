@@ -29,6 +29,8 @@ const api = {
     ipcRenderer.send('set-concurrent', concurrent),
   setBaseModelSubfolders: (baseModelSubfolders: boolean) =>
     ipcRenderer.send('set-base-model-subfolders', baseModelSubfolders),
+  setScanOnStartup: (scanOnStartup: boolean) =>
+    ipcRenderer.send('set-scan-on-startup', scanOnStartup),
   openModelFileFolder: (filePath: string) =>
     ipcRenderer.send('open-model-file-folder', filePath),
   setApiKey: (key: string) => ipcRenderer.send('set-api-key', key),
@@ -63,6 +65,8 @@ const api = {
   cancelVaultDownload: (id: number) =>
     ipcRenderer.send('cancel-vault-download', id),
   getFileByHash: (hash: string) => ipcRenderer.invoke('get-file-by-hash', hash),
+  sortLoraFiles: () => ipcRenderer.invoke('sort-lora-files'),
+  fullRescan: () => ipcRenderer.invoke('full-rescan'),
 };
 
 // Use `contextBridge` APIs to expose Electron APIs to

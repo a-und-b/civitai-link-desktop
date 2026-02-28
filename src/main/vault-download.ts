@@ -4,7 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import { v4 as uuid } from 'uuid';
 import { getWindow } from './browser-window';
-import { getRootResourcePath } from './store/paths';
+import { getRootResourcePath } from './store/store';
 import { getApiKey, getSettings } from './store/store';
 import { findOrCreateFolder } from './utils/find-or-create-folder';
 

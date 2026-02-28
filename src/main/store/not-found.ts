@@ -38,3 +38,7 @@ export function getNotFoundFiles() {
     { hash: string; path: string; lastScannedDate: Date }
   >;
 }
+
+export function clearNotFoundFiles() {
+  store.clear();
+}

@@ -18,7 +18,7 @@ import {
   initFolderCheck,
 } from './folder-watcher';
 import { socketIOConnect } from './socket';
-import { getResourcePath, getRootResourcePath } from './store/paths';
+import { getResourcePath, getRootResourcePath } from './store/store';
 import {
   ConnectionStatus,
   getUpgradeKey,
@@ -138,10 +138,8 @@ app.whenReady().then(async () => {
   setupCommons();
 
   // Watchers/Listeners
-  if (getUpgradeKey()) {
-    initFolderCheck();
-  }
-
+  // NOTE: initFolderCheck() is now called from the 'init' IPC event
+  // after the renderer is ready to receive events
   folderWatcher();
   eventsListeners();
   watcherActivities();

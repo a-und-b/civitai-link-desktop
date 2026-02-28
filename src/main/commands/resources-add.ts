@@ -4,7 +4,7 @@ import { BrowserWindow } from 'electron';
 import { getModelByHash } from '../civitai-api';
 import { downloadFile } from '../download-file';
 import { updateActivity } from '../store/activities';
-import { getResourcePathWithBaseModel } from '../store/paths';
+import { getResourcePathWithBaseModel } from '../store/store';
 
 type ResourcesAddParams = {
   id: string;

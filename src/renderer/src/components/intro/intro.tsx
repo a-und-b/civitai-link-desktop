@@ -15,6 +15,7 @@ export function Intro() {
   const submit = async () => {
     const segmentsString = segments.join('');
     if (segmentsString && segmentsString.length === 6) {
+      console.log('[Intro] Submitting setup, calling init...');
       setStableDiffusion(sdType);
       setKey(segmentsString);
       init();

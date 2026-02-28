@@ -1,4 +1,4 @@
-import { getResourcePath } from '../store/paths';
+import { getResourcePath } from '../store/store';
 import { vaultDownload } from '../vault-download';
 
 export function eventDownloadVaultItem(

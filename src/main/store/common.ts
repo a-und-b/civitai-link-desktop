@@ -2,31 +2,9 @@ import { app } from 'electron';
 import Store, { Schema } from 'electron-store';
 import { fetchEnums } from '../civitai-api';
 
-const schema: Schema<{ enums: ApiEnums }> = {
+const schema: Schema<{ enums: ApiEnums | null }> = {
   enums: {
-    type: 'object',
-    properties: {
-      ModelType: {
-        type: 'array',
-        default: [],
-      },
-      ModelFileType: {
-        type: 'array',
-        default: [],
-      },
-      ActiveBaseModel: {
-        type: 'array',
-        default: [],
-      },
-      BaseModel: {
-        type: 'array',
-        default: [],
-      },
-      BaseModelType: {
-        type: 'array',
-        default: [],
-      },
-    },
+    type: ['object', 'null'],
     default: {
       ModelType: [],
       ModelFileType: [],

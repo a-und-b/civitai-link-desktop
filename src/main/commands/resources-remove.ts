@@ -1,6 +1,6 @@
 import path from 'path';
 import fs from 'fs';
-import { getResourcePath } from '../store/paths';
+import { getResourcePath } from '../store/store';
 import { deleteFile, searchFile } from '../store/files';
 import { updateActivity } from '../store/activities';
 import { filterResourcesList } from './filter-reources-list';
