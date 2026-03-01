@@ -102,6 +102,9 @@ export function useApi() {
     getFileByHash: async (hash: string): Promise<Resource> => {
       return await window.api.getFileByHash(hash);
     },
+    refreshMetadataFromCivitai: async (hash: string): Promise<Resource | null> => {
+      return await window.api.refreshMetadataFromCivitai(hash);
+    },
     fetchEnums: async () => {
       return await window.api.fetchEnums();
     },

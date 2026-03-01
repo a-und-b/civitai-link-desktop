@@ -173,7 +173,9 @@ export async function eventSortLoraFiles(
     // Process with rate limiting (3 concurrent, 100ms delay between API calls)
     await limitConcurrency(tasks, {
       limit: 3,
-      betweenTasksFn: () => sleep(100),
+      betweenTasksFn: async () => {
+        await sleep(100);
+      },
     });
 
     // Send completion event

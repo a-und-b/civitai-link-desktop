@@ -46,6 +46,7 @@ declare global {
       }) => void;
       cancelVaultDownload: (id: number) => void;
       getFileByHash: (hash: string) => Resource;
+      refreshMetadataFromCivitai: (hash: string) => Promise<Resource | null>;
       fetchEnums: () => ApiEnums;
     };
   }

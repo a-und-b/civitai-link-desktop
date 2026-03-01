@@ -8,6 +8,7 @@ import duration from 'dayjs/plugin/duration';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { AiOutlineCloseCircle } from 'react-icons/ai';
 import { useApi } from '@/hooks/use-api';
+import { isVideoPreview } from '@/lib/utils';
 import { Image } from 'lucide-react';
 import { useFile } from '@/providers/files';
 import classnames from 'classnames';
@@ -71,12 +72,23 @@ export function FilesItem({ resource }: FilesItemProps) {
               <div className="flex gap-2">
                 {resource.previewImageUrl && !imageFailed ? (
                   <div className="w-12 h-12 items-center overflow-hidden rounded">
-                    <img
-                      src={resource.previewImageUrl}
-                      alt={resource.modelName}
-                      onError={() => setImageFailed(true)}
-                      className="h-full w-full object-cover object-center"
-                    />
+                    {isVideoPreview(resource.previewImageUrl) ? (
+                      <video
+                        src={resource.previewImageUrl}
+                        className="h-full w-full object-cover object-center"
+                        muted
+                        playsInline
+                        preload="metadata"
+                        onError={() => setImageFailed(true)}
+                      />
+                    ) : (
+                      <img
+                        src={resource.previewImageUrl}
+                        alt={resource.modelName}
+                        onError={() => setImageFailed(true)}
+                        className="h-full w-full object-cover object-center"
+                      />
+                    )}
                   </div>
                 ) : (
                   <div className="bg-card w-12 h-12 rounded flex items-center justify-center">

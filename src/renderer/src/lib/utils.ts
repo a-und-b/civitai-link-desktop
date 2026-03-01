@@ -26,6 +26,11 @@ export function ellipsis({
   return str;
 }
 
+export function isVideoPreview(url: string): boolean {
+  const ext = url.split(/[#?]/)[0]?.split('.')?.pop()?.toLowerCase();
+  return ext === 'mp4' || ext === 'webm';
+}
+
 export const KB = 1024 as const;
 
 export function bytesToKB(bytes: number): number {

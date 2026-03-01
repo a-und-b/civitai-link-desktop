@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { useToast } from '@/components/ui/use-toast';
 import {
   Tooltip,
   TooltipContent,
@@ -11,6 +12,7 @@ import {
   ClipboardCopy,
   ExternalLink,
   FolderOpenDot,
+  RefreshCw,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { StoreInVaultButton } from '../buttons/store-in-vault-button';
@@ -19,12 +21,15 @@ import { FileItemDelete } from './file-item-delete';
 
 type FileActionsProps = {
   file: Resource;
+  onRefresh?: (file: Resource) => void;
 };
 
-export function FileActions({ file }: FileActionsProps) {
-  const { openModelFileFolder } = useApi();
+export function FileActions({ file, onRefresh }: FileActionsProps) {
+  const { openModelFileFolder, refreshMetadataFromCivitai } = useApi();
+  const { toast } = useToast();
 
   const [isCopied, setIsCopied] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     setTimeout(() => {
@@ -52,6 +57,47 @@ export function FileActions({ file }: FileActionsProps) {
             </Button>
           </TooltipTrigger>
           <TooltipContent side="bottom">Open File in Folder</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              disabled={isRefreshing}
+              onClick={async () => {
+                console.log('[Refresh] User triggered refresh for:', file.modelName, file.hash);
+                setIsRefreshing(true);
+                try {
+                  const updated = await refreshMetadataFromCivitai(file.hash);
+                  if (updated) {
+                    console.log('[Refresh] Renderer received updated file, previewImageUrl:', !!updated.previewImageUrl);
+                    onRefresh?.(updated);
+                    toast({ title: 'Preview refreshed from Civitai' });
+                  } else {
+                    console.log('[Refresh] No updated file returned');
+                  }
+                } catch (err) {
+                  console.error('[Refresh] Refresh failed:', err);
+                  toast({
+                    variant: 'destructive',
+                    title: 'Failed to refresh preview',
+                    description:
+                      err instanceof Error ? err.message : 'Model may not exist on Civitai',
+                  });
+                } finally {
+                  setIsRefreshing(false);
+                }
+              }}
+            >
+              <RefreshCw
+                className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`}
+              />
+              <span className="sr-only">Refresh preview from Civitai</span>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            Refresh preview from Civitai
+          </TooltipContent>
         </Tooltip>
         {file.civitaiUrl ? (
           <Tooltip>

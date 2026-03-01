@@ -22,6 +22,7 @@ import { eventOpenRootModelFolder } from './open-root-model-folder';
 import { eventFetchMetadata } from './fetch-metadata';
 import { eventFetchFileNotes, eventSaveFileNotes } from './notes';
 import { eventOpenModelFileFolder } from './open-model-file-folder';
+import { eventRefreshMetadataFromCivitai } from './refresh-metadata-from-civitai';
 import { eventResourceRemove } from './resource-remove';
 import { eventSearchFile } from './search-file';
 
@@ -92,6 +93,9 @@ export function eventsListeners() {
   ipcMain.handle('fetch-file-notes', eventFetchFileNotes);
   ipcMain.on('download-vault-item', eventDownloadVaultItem);
   ipcMain.handle('get-file-by-hash', eventGetFileByHash);
+  ipcMain.handle('refresh-metadata-from-civitai', (_, hash: string) =>
+    eventRefreshMetadataFromCivitai(_, hash),
+  );
   ipcMain.handle('sort-lora-files', eventSortLoraFiles);
   ipcMain.handle('full-rescan', eventFullRescan);
 }

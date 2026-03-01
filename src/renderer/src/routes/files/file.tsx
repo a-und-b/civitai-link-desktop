@@ -4,6 +4,7 @@ import { Badge, TypeBadge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { useApi } from '@/hooks/use-api';
+import { isVideoPreview } from '@/lib/utils';
 import classnames from 'classnames';
 import dayjs from 'dayjs';
 import { Check, Copy, DownloadCloud, Image } from 'lucide-react';
@@ -17,6 +18,7 @@ export function File() {
   const [isCopied, setIsCopied] = useState<number | null>(null);
   const [imageFailed, setImageFailed] = useState(false);
   const [file, setFile] = useState<Resource | null>(null);
+  const [previewKey, setPreviewKey] = useState(0);
 
   useEffect(() => {
     const fetchFile = async () => {
@@ -39,6 +41,7 @@ export function File() {
   useEffect(() => {
     setImageFailed(false);
     setIsCopied(null);
+    setPreviewKey((k) => k + 1);
   }, [hash]);
 
   if (!file) {
@@ -47,17 +50,50 @@ export function File() {
 
   return (
     <div className="flex h-full flex-col">
-      <FileActions file={file} />
+      <FileActions
+        file={file}
+        onRefresh={(updated) => {
+          setFile(updated);
+          setImageFailed(false);
+          setPreviewKey((k) => k + 1);
+        }}
+      />
       <Separator />
       <ScrollArea className="h-full">
         <div className="p-4 gap-2 flex flex-col pb-16">
           {file.previewImageUrl && !imageFailed ? (
-            <img
-              src={file.previewImageUrl}
-              alt={file.modelName}
-              className="aspect-square object-cover object-center rounded-lg max-w-80"
-              onError={() => setImageFailed(true)}
-            />
+            isVideoPreview(file.previewImageUrl) ? (
+              <video
+                key={previewKey}
+                src={file.previewImageUrl}
+                className="aspect-square object-cover object-center rounded-lg max-w-80"
+                muted
+                loop
+                playsInline
+                autoPlay
+                onError={() => {
+                  console.warn('[Preview] Video failed to load:', file.previewImageUrl);
+                  setImageFailed(true);
+                }}
+                onLoadedData={() =>
+                  console.log('[Preview] Video loaded successfully:', file.previewImageUrl)
+                }
+              />
+            ) : (
+              <img
+                key={previewKey}
+                src={file.previewImageUrl}
+                alt={file.modelName}
+                className="aspect-square object-cover object-center rounded-lg max-w-80"
+                onError={() => {
+                  console.warn('[Preview] Image failed to load:', file.previewImageUrl);
+                  setImageFailed(true);
+                }}
+                onLoad={() =>
+                  console.log('[Preview] Image loaded successfully:', file.previewImageUrl)
+                }
+              />
+            )
           ) : (
             <div className="bg-card w-12 h-12 rounded flex items-center justify-center">
               <Image size={24} />

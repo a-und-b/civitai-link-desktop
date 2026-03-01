@@ -65,6 +65,8 @@ const api = {
   cancelVaultDownload: (id: number) =>
     ipcRenderer.send('cancel-vault-download', id),
   getFileByHash: (hash: string) => ipcRenderer.invoke('get-file-by-hash', hash),
+  refreshMetadataFromCivitai: (hash: string) =>
+    ipcRenderer.invoke('refresh-metadata-from-civitai', hash),
   sortLoraFiles: () => ipcRenderer.invoke('sort-lora-files'),
   fullRescan: () => ipcRenderer.invoke('full-rescan'),
 };
