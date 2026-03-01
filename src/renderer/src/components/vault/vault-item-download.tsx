@@ -27,6 +27,7 @@ export function VaultItemDownload({
   const [progress, setProgress] = useState(0);
   const [_, setSpeed] = useState(0);
   const [__, setRemainingTime] = useState(0);
+  const [isMerging, setIsMerging] = useState(false);
 
   // Watch for events from download process
   useEffect(() => {
@@ -38,6 +39,7 @@ export function VaultItemDownload({
           setSpeed(message.speed);
           setRemainingTime(message.remainingTime);
           setIsDownloading(message.downloading);
+          setIsMerging(message.merging ?? false);
         },
       );
     }
@@ -69,7 +71,9 @@ export function VaultItemDownload({
           </div>
         </TooltipTrigger>
         <TooltipContent className="max-w-[360px] bg-background/90 rounded mr-2 p-1 border z-50">
-          <p className="text-xs">Cancel download</p>
+          <p className="text-xs">
+            {isMerging ? 'Merging files...' : 'Cancel download'}
+          </p>
         </TooltipContent>
       </Tooltip>
     );

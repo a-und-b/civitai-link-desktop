@@ -2,8 +2,10 @@ import axios from 'axios';
 import { Notification, ipcMain } from 'electron';
 import fs from 'fs';
 import path from 'path';
+import { pipeline } from 'stream/promises';
 import { v4 as uuid } from 'uuid';
 import { getWindow } from './browser-window';
+import { registerInProgress, unregisterInProgress } from './download-in-progress';
 import { getRootResourcePath } from './store/store';
 import { getApiKey, getSettings } from './store/store';
 import { findOrCreateFolder } from './utils/find-or-create-folder';
@@ -36,15 +38,19 @@ async function downloadChunk({
 
   const response = await axios.get(url, {
     headers,
-    responseType: 'arraybuffer',
+    responseType: 'stream',
     signal: abortController.signal,
-    onDownloadProgress: (progressEvent) => {
-      const { loaded, total } = progressEvent;
-      progressCallback(index, loaded, total);
-    },
   });
 
-  fs.writeFileSync(`${tempFilePath}.part${index}`, response.data);
+  const chunkTotal = end - start + 1;
+  let loaded = 0;
+  response.data.on('data', (chunk: Buffer) => {
+    loaded += chunk.length;
+    progressCallback(index, loaded, chunkTotal);
+  });
+
+  const writeStream = fs.createWriteStream(`${tempFilePath}.part${index}`);
+  await pipeline(response.data, writeStream);
 }
 
 async function getFileSize(url: string) {
@@ -188,14 +194,41 @@ export async function vaultDownload({
 
   await Promise.all(promises);
 
+  // Merge phase: send progress updates so UI doesn't appear stuck
+  const mergeProgressStart = 95;
+  const mergeProgressRange = 5;
+  mainWindow.webContents.send(`vault-download:${resource.id}`, {
+    totalLength: fileSize,
+    progress: mergeProgressStart,
+    merging: true,
+    downloading: true,
+  });
+
+  registerInProgress(filePath);
   const writeStream = fs.createWriteStream(filePath);
-  for (let i = 0; i < NUMBER_PARTS; i++) {
-    const chunkPath = `${tempFilePath}.part${i}`;
-    await readStreamSync(chunkPath, writeStream);
-    fs.unlinkSync(chunkPath); // Clean up chunk file after merging
+  try {
+    for (let i = 0; i < NUMBER_PARTS; i++) {
+      const chunkPath = `${tempFilePath}.part${i}`;
+      await appendChunkToStream(chunkPath, writeStream);
+      fs.unlinkSync(chunkPath); // Clean up chunk file after merging
+
+      const mergeProgress =
+        mergeProgressStart +
+        (mergeProgressRange * (i + 1)) / NUMBER_PARTS;
+      mainWindow.webContents.send(`vault-download:${resource.id}`, {
+        totalLength: fileSize,
+        progress: mergeProgress,
+        merging: true,
+        downloading: true,
+      });
+    }
+  } catch (err) {
+    unregisterInProgress(filePath);
+    throw err;
   }
 
   async function onEnd() {
+    unregisterInProgress(filePath);
     new Notification({
       title: 'Download Complete',
       body: resource.name,
@@ -208,6 +241,7 @@ export async function vaultDownload({
     mainWindow.webContents.send(`vault-download:${resource.id}`, {
       totalLength: fileSize,
       progress: 100,
+      merging: false,
       downloading: false,
     });
   }
@@ -218,15 +252,15 @@ export async function vaultDownload({
   console.log(`Total time: ${totalTime.toFixed(2)} seconds`);
 }
 
-function readStreamSync(chunkPath: string, writeStream: fs.WriteStream) {
-  const stream = fs.createReadStream(chunkPath);
-
-  return new Promise<void>((resolve) => {
-    stream.on('data', (data) => {
-      writeStream.write(data);
-    });
-    stream.on('end', () => {
-      resolve();
-    });
+function appendChunkToStream(
+  chunkPath: string,
+  writeStream: fs.WriteStream,
+): Promise<void> {
+  const readStream = fs.createReadStream(chunkPath);
+  return new Promise((resolve, reject) => {
+    readStream.pipe(writeStream, { end: false });
+    readStream.on('end', resolve);
+    readStream.on('error', reject);
+    writeStream.on('error', reject);
   });
 }

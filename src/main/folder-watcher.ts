@@ -3,6 +3,7 @@ import os from 'os';
 import path from 'path';
 import workerpool from 'workerpool';
 import { getModelByHash } from './civitai-api';
+import { isInProgress } from './download-in-progress';
 import { listDirectories } from './list-directory';
 import { socketCommandStatus } from './socket';
 import { addFile, deleteFile, findFileByFilename } from './store/files';
@@ -105,6 +106,10 @@ function onUnlink(filePath: string) {
 async function onAdd(pathname: string, fileSize?: number) {
   // Short circuit if file isnt a model file
   if (!FILE_TYPES.some((x) => pathname.includes(x))) return;
+
+  // Skip files currently being written by download (merge phase)
+  const resolvedPath = path.resolve(pathname);
+  if (isInProgress(resolvedPath)) return;
 
   // Short circuit if in not found store
   const notFoundFile = searchNotFoundFile(pathname);

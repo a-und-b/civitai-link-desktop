@@ -23,6 +23,7 @@ export function FilesItem({ resource }: FilesItemProps) {
   const [progress, setProgress] = useState(0);
   const [speed, setSpeed] = useState(0);
   const [remainingTime, setRemainingTime] = useState(0);
+  const [isMerging, setIsMerging] = useState(false);
   const { cancelDownload } = useApi();
   const { removeActivity } = useFile();
   const isNotDone = isDownloading && progress < 100;
@@ -34,9 +35,10 @@ export function FilesItem({ resource }: FilesItemProps) {
         `resource-download:${resource.id}`,
         function (_, message) {
           setProgress(message.progress);
-          setSpeed(message.speed);
-          setRemainingTime(message.remainingTime);
+          setSpeed(message.speed ?? 0);
+          setRemainingTime(message.remainingTime ?? 0);
           setIsDownloading(message.downloading);
+          setIsMerging(message.merging ?? false);
         },
       );
     }
@@ -105,7 +107,9 @@ export function FilesItem({ resource }: FilesItemProps) {
             </a>
             <div>
               <p className="text-xs text-[#909296] leading-none">
-                {prettyBytes(speed)}/s
+                {isMerging
+                  ? 'Merging...'
+                  : `${prettyBytes(speed)}/s`}
               </p>
             </div>
           </div>
@@ -124,7 +128,9 @@ export function FilesItem({ resource }: FilesItemProps) {
               </p>
             </div>
             <p className="text-xs text-[#909296] leading-none">
-              {dayjs.duration({ seconds: remainingTime }).humanize()} remaining
+              {isMerging
+                ? 'Finishing...'
+                : `${dayjs.duration({ seconds: remainingTime }).humanize()} remaining`}
             </p>
           </div>
         </CardContent>
