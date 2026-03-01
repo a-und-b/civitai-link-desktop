@@ -16,13 +16,15 @@ type ResourcesAddParams = {
 export async function resourcesAdd(params: ResourcesAddParams) {
   const payload = params.payload;
   const hashLowercase = payload.hash.toLowerCase();
+  const modelInfo = await getModelByHash(hashLowercase);
   const {
     previewImageUrl,
     civitaiUrl,
     modelVersionId,
     baseModel,
     trainedWords,
-  } = await getModelByHash(hashLowercase);
+    description,
+  } = modelInfo;
   const resourcePath = getResourcePathWithBaseModel(payload.type, baseModel);
   const timestamp = new Date().toISOString();
 
@@ -67,6 +69,7 @@ export async function resourcesAdd(params: ResourcesAddParams) {
       civitaiUrl,
       baseModel,
       trainedWords,
+      description,
     },
     downloadPath: resourcePath,
     socket: params.socket,
