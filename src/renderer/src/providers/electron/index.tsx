@@ -188,6 +188,16 @@ export function ElectronProvider({ children }: { children: React.ReactNode }) {
   });
 
   useEffect(() => {
+    ipcRenderer.on('root-path-update', function (_, newRootPath: string | null) {
+      setRootResourcePath(newRootPath);
+    });
+
+    return () => {
+      ipcRenderer.removeAllListeners('root-path-update');
+    };
+  }, []);
+
+  useEffect(() => {
     ipcRenderer.on('update-available', function () {
       setUpdateAvailable(true);
     });

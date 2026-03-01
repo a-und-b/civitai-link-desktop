@@ -39,13 +39,13 @@ export function PathInput({
         const root = await getRootPath();
         setDirPath(root);
       } else {
-        const resourecePath = await getResourcePath(type);
-        setDirPath(resourecePath);
+        const resourcePath = await getResourcePath(type);
+        setDirPath(resourcePath);
       }
     };
 
     fetchResourcePath();
-  }, [rootResourcePath]);
+  }, [rootResourcePath, type]);
 
   async function getDir() {
     const selectedDir = await selectDirectory(dirPath || '');

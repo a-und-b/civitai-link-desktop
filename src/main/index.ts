@@ -12,16 +12,11 @@ import {
 import log from 'electron-log';
 import { autoUpdater } from 'electron-updater';
 import { eventsListeners } from './events';
-import {
-  cleanupWatcher,
-  folderWatcher,
-  initFolderCheck,
-} from './folder-watcher';
+import { cleanupWatcher, folderWatcher } from './folder-watcher';
 import { socketIOConnect } from './socket';
 import { getResourcePath, getRootResourcePath } from './store/store';
 import {
   ConnectionStatus,
-  getUpgradeKey,
   setUser,
   store,
   watchApiKey,
@@ -190,6 +185,10 @@ app.whenReady().then(async () => {
 
   store.onDidChange('settings', (newValue) => {
     mainWindow.webContents.send('settings-update', newValue);
+  });
+
+  store.onDidChange('rootResourcePath', (newValue) => {
+    mainWindow.webContents.send('root-path-update', newValue);
   });
 
   autoUpdater.on('update-available', () => {

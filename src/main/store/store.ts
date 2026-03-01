@@ -299,8 +299,32 @@ export function getRootResourcePath(): string {
   return store.get('rootResourcePath') as string;
 }
 
-export function setRootResourcePath(path: string) {
-  store.set('rootResourcePath', path);
+export function setRootResourcePath(newRoot: string) {
+  store.set('rootResourcePath', newRoot);
+
+  const rootPath = newRoot || app.getPath('home');
+  const sdType = store.get('sdType') as string;
+  const PATHS = {
+    ...SYMLINK,
+    ...(sdType === 'a1111'
+      ? A1111_PATHS
+      : sdType === 'comfyui'
+        ? COMFY_UI_PATHS
+        : {}),
+  };
+
+  const resourceKeys = Object.keys(Resources) as Array<keyof typeof Resources>;
+  const newResourcePaths: Record<string, string> = {};
+  for (const key of resourceKeys) {
+    const resourceValue = Resources[key];
+    const subfolder = PATHS[resourceValue as Resources];
+    newResourcePaths[resourceValue] = subfolder
+      ? path.join(rootPath, subfolder)
+      : rootPath;
+  }
+  store.set('resourcePaths', newResourcePaths);
+  // Defer scan so path updates and UI refresh complete before blocking filesystem work
+  setImmediate(() => initFolderCheck());
 }
 
 /**
