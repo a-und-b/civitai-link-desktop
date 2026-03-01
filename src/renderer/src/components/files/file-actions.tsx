@@ -72,7 +72,7 @@ export function FileActions({ file, onRefresh }: FileActionsProps) {
                   if (updated) {
                     console.log('[Refresh] Renderer received updated file, previewImageUrl:', !!updated.previewImageUrl);
                     onRefresh?.(updated);
-                    toast({ title: 'Preview refreshed from Civitai' });
+                    toast({ title: 'Metadata refreshed from Civitai' });
                   } else {
                     console.log('[Refresh] No updated file returned');
                   }
@@ -80,7 +80,7 @@ export function FileActions({ file, onRefresh }: FileActionsProps) {
                   console.error('[Refresh] Refresh failed:', err);
                   toast({
                     variant: 'destructive',
-                    title: 'Failed to refresh preview',
+                    title: 'Failed to refresh metadata',
                     description:
                       err instanceof Error ? err.message : 'Model may not exist on Civitai',
                   });
@@ -92,11 +92,11 @@ export function FileActions({ file, onRefresh }: FileActionsProps) {
               <RefreshCw
                 className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`}
               />
-              <span className="sr-only">Refresh preview from Civitai</span>
+              <span className="sr-only">Refresh metadata from Civitai</span>
             </Button>
           </TooltipTrigger>
           <TooltipContent side="bottom">
-            Refresh preview from Civitai
+            Refresh metadata from Civitai
           </TooltipContent>
         </Tooltip>
         {file.civitaiUrl ? (

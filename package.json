@@ -28,6 +28,7 @@
     "build:linux": "npm run build && electron-builder --linux --config --publish always"
   },
   "dependencies": {
+    "dompurify": "^3.0.9",
     "@electron-toolkit/preload": "^3.0.0",
     "@electron-toolkit/utils": "^3.0.0",
     "@radix-ui/react-alert-dialog": "^1.0.5",
@@ -80,6 +81,7 @@
     "@electron-toolkit/eslint-config-prettier": "^2.0.0",
     "@electron-toolkit/eslint-config-ts": "^2.0.0",
     "@electron-toolkit/tsconfig": "^1.0.1",
+    "@types/dompurify": "^3.0.5",
     "@types/lodash": "^4.14.202",
     "@types/node": "^20.11.19",
     "@types/react": "^18.2.47",

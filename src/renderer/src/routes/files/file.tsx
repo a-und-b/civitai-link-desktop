@@ -1,6 +1,7 @@
 import { FileActions } from '@/components/files/file-actions';
 import { FileNotes } from '@/components/files/file-notes';
 import { Badge, TypeBadge } from '@/components/ui/badge';
+import { SafeHtml } from '@/components/ui/safe-html';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { useApi } from '@/hooks/use-api';
@@ -176,6 +177,14 @@ export function File() {
               ) : null}
             </tbody>
           </table>
+          {file.description?.trim() ? (
+            <div className="bg-[#25262b] w-full px-3 py-2 mt-4 rounded-sm">
+              <p className="text-[#909296] text-sm mb-2">Description</p>
+              <div className="max-h-64 overflow-y-auto">
+                <SafeHtml html={file.description} />
+              </div>
+            </div>
+          ) : null}
           <FileNotes file={file} />
         </div>
       </ScrollArea>

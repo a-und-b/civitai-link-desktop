@@ -3,12 +3,12 @@ import { getApiKey, getSettings } from './store/store';
 
 const CIVITAI_API_URL = 'https://civitai.com/api/v1';
 
-type ResponsePayload = {
+type ModelVersionPayload = {
   data: {
     id: number;
     modelId: number;
     downloadUrl: string;
-    description: string;
+    description: string | null;
     baseModel: string;
     model: {
       name: string;
@@ -32,9 +32,25 @@ type ResponsePayload = {
   };
 };
 
+type ModelPayload = {
+  id: number;
+  description: string | null;
+};
+
+async function fetchModelDescription(modelId: number): Promise<string | null> {
+  try {
+    const { data }: { data: ModelPayload } = await axios.get(
+      `${CIVITAI_API_URL}/models/${modelId}`,
+    );
+    return data.description?.trim() || null;
+  } catch {
+    return null;
+  }
+}
+
 export const getModelByHash = async (hash: string): Promise<Resource> => {
   try {
-    const { data }: ResponsePayload = await axios.get(
+    const { data }: ModelVersionPayload = await axios.get(
       `${CIVITAI_API_URL}/model-versions/by-hash/${hash}`,
     );
 
@@ -50,6 +66,13 @@ export const getModelByHash = async (hash: string): Promise<Resource> => {
       return false;
     })?.url;
 
+    // Version description is often empty (see civitai/civitai#813); fetch full model description from /models/:modelId
+    const versionDescription = data.description?.trim() || null;
+    const modelDescription = data.modelId
+      ? await fetchModelDescription(data.modelId)
+      : null;
+    const description = modelDescription || versionDescription;
+
     const resource: Resource = {
       hash,
       url: data.downloadUrl,
@@ -61,7 +84,7 @@ export const getModelByHash = async (hash: string): Promise<Resource> => {
       modelVersionId: data.id,
       previewImageUrl,
       trainedWords: data.trainedWords,
-      description: data.description,
+      description: description || undefined,
       baseModel: data.baseModel,
       civitaiUrl: `https://civitai.com/models/${data.modelId}`,
     };
