@@ -2,6 +2,7 @@ import { app } from 'electron';
 import Store, { Schema } from 'electron-store';
 import path from 'path';
 import { getWindow } from '../browser-window';
+import { safeSend } from '../utils/safe-send';
 import { createModelJson } from '../utils/create-model-json';
 import { createPreviewImage } from '../utils/create-preview-image';
 import { fileStats } from '../utils/file-stats';
@@ -78,7 +79,14 @@ export function searchFileByModelVersionId(modelVersionId: number) {
 }
 
 export function updateFile(file: Resource) {
-  return store.set(`files.${file.hash.toLowerCase()}`, file);
+  const normalized = { ...file, hash: file.hash.toLowerCase() };
+  if (file.localPath) {
+    normalized.name = path.basename(file.localPath);
+  }
+  store.set(`files.${normalized.hash}`, normalized);
+
+  const files = store.get('files') as ResourcesMap;
+  safeSend('files-update', files);
 }
 
 export function getFiles() {

@@ -29,19 +29,21 @@ export function diffDirectories(filesInDirs: string[]): string[] {
   let diff = difference(oldFiles, filesInDirs);
 
   // Update paths and remove from diff if it exists and just moved
-  const toRemove = diff.reduce((acc: string[], file: string) => {
-    const wasRemoved = !filenames.includes(path.basename(file));
+  const toRemove = diff.reduce((acc: string[], oldPath: string) => {
+    const basename = path.basename(oldPath);
+    const wasRemoved = !filenames.includes(basename);
     if (!wasRemoved) {
-      // File was moved, update the path
-      const resource = findFileByFilename(file);
-      if (resource) {
-        updateFile({ ...resource, localPath: file });
+      // File was moved: find the new path in filesInDirs and update the resource
+      const newPath = filesInDirs.find((p) => path.basename(p) === basename);
+      const resource = findFileByFilename(basename);
+      if (resource && newPath) {
+        updateFile({ ...resource, localPath: newPath });
         return acc;
       }
     }
 
     // Otherwise, add to list to remove
-    return [...acc, file];
+    return [...acc, oldPath];
   }, []);
 
   // File no longer on file system
