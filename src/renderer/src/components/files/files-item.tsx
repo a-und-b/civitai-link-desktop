@@ -8,7 +8,7 @@ import duration from 'dayjs/plugin/duration';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { AiOutlineCloseCircle } from 'react-icons/ai';
 import { useApi } from '@/hooks/use-api';
-import { isVideoPreview } from '@/lib/utils';
+import { getResourceDisplayName, isVideoPreview } from '@/lib/utils';
 import { Image } from 'lucide-react';
 import { useFile } from '@/providers/files';
 import classnames from 'classnames';
@@ -84,7 +84,7 @@ export function FilesItem({ resource }: FilesItemProps) {
                     ) : (
                       <img
                         src={resource.previewImageUrl}
-                        alt={resource.modelName}
+                        alt={getResourceDisplayName(resource)}
                         onError={() => setImageFailed(true)}
                         className="h-full w-full object-cover object-center"
                       />
@@ -97,12 +97,17 @@ export function FilesItem({ resource }: FilesItemProps) {
                 )}
                 <div className="text-ellipsis overflow-hidden justify-between flex flex-col flex-1 gap-2">
                   <p className="text-sm leading-none dark:text-white font-bold text-ellipsis overflow-hidden">
-                    {resource.modelName}
+                    {getResourceDisplayName(resource)}
                   </p>
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-2 flex-wrap gap-1">
                     <TypeBadge type={resource.type} />
                     {resource.baseModel && <Badge variant="outline">{resource.baseModel}</Badge>}
-                    <Badge variant="outline">{resource.modelVersionName}</Badge>
+                    <Badge variant="outline">
+                      {resource.modelVersionName ?? 'Local file'}
+                    </Badge>
+                    {resource.matchStatus === 'unmatched' && (
+                      <Badge variant="secondary">Unmatched</Badge>
+                    )}
                   </div>
                 </div>
               </div>
@@ -112,11 +117,17 @@ export function FilesItem({ resource }: FilesItemProps) {
       ) : (
         <CardContent className="space-y-2">
           <div className="flex justify-between">
-            <a href={resource.civitaiUrl} target="_blank">
+            {resource.civitaiUrl ? (
+              <a href={resource.civitaiUrl} target="_blank">
+                <p className="text-sm leading-none dark:text-white font-bold text-ellipsis overflow-hidden">
+                  {getResourceDisplayName(resource)}
+                </p>
+              </a>
+            ) : (
               <p className="text-sm leading-none dark:text-white font-bold text-ellipsis overflow-hidden">
-                {resource.modelName}
+                {getResourceDisplayName(resource)}
               </p>
-            </a>
+            )}
             <div>
               <p className="text-xs text-[#909296] leading-none">
                 {isMerging

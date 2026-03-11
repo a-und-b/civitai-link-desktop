@@ -15,7 +15,7 @@ export function filterResourcesList() {
 
   for (const resource of Object.values(resources)) {
     resourceList.push({
-      type: resource.type,
+      type: resource.type ?? 'Unknown',
       hash: resource.hash,
       name: resource.name,
       path: resource.localPath,

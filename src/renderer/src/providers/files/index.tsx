@@ -22,6 +22,7 @@ type RemoveActivityParams = {
 export enum FileListFilters {
   TYPE = 'type',
   BASE_MODEL = 'baseModel',
+  MATCH_STATUS = 'matchStatus',
 }
 
 type FileContextType = {
@@ -37,6 +38,7 @@ type FileContextType = {
   appliedFilters: {
     modelType: string[];
     baseModelType: string[];
+    matchStatus: string[];
   };
   fileHashMap: Record<string, Resource>;
   fuseList: { item: Resource }[];
@@ -56,6 +58,7 @@ const defaultValue: FileContextType = {
   appliedFilters: {
     modelType: [],
     baseModelType: [],
+    matchStatus: [],
   },
   fuseList: [],
   fileHashMap: {},
@@ -67,7 +70,7 @@ export const useFile = () => useContext(FileContext);
 
 const models: Resource[] = [];
 const fuse = new Fuse(models, {
-  keys: ['modelName', 'name', 'baseModel', 'type'],
+  keys: ['modelName', 'name', 'displayName', 'baseModel', 'type', 'matchStatus'],
   threshold: 0.3,
 });
 
@@ -97,6 +100,7 @@ export function FileProvider({ children }: { children: React.ReactNode }) {
   // Filter types
   const [modelTypeArray, setModelTypeArray] = useState<string[]>([]);
   const [baseModelArray, setBaseModelArray] = useState<string[]>([]);
+  const [matchStatusArray, setMatchStatusArray] = useState<string[]>([]);
 
   const { cancelDownload } = useApi();
 
@@ -135,8 +139,17 @@ export function FileProvider({ children }: { children: React.ReactNode }) {
         });
       }
 
+      if (matchStatusArray.length) {
+        filters.$and?.push({
+          $or: matchStatusArray.map((status) => ({ matchStatus: `'${status}` })),
+        });
+      }
+
       const searchResults: any[] =
-        search.length || modelTypeArray.length || baseModelArray.length
+        search.length ||
+        modelTypeArray.length ||
+        baseModelArray.length ||
+        matchStatusArray.length
           ? fuse.search(filters)
           : mapHashToFuse(fileHashMap);
 
@@ -152,7 +165,7 @@ export function FileProvider({ children }: { children: React.ReactNode }) {
         setFuseList(sortedResults);
       }
     },
-    [sortType, sortDirection, modelTypeArray, baseModelArray, fileHashMap],
+    [sortType, sortDirection, modelTypeArray, baseModelArray, matchStatusArray, fileHashMap],
   );
 
   const sortFiles = (type: SortType) => {
@@ -170,8 +183,16 @@ export function FileProvider({ children }: { children: React.ReactNode }) {
     const typeLowerCase = type.toLowerCase();
     let modelType: string[] = [...modelTypeArray];
     let baseModelType: string[] = [...baseModelArray];
+    let matchStatus: string[] = [...matchStatusArray];
 
-    if (filterType === FileListFilters.BASE_MODEL) {
+    if (filterType === FileListFilters.MATCH_STATUS) {
+      if (matchStatusArray.includes(typeLowerCase)) {
+        matchStatus = matchStatusArray.filter((s) => s !== typeLowerCase);
+      } else {
+        matchStatus = [...matchStatusArray, typeLowerCase];
+      }
+      setMatchStatusArray(matchStatus);
+    } else if (filterType === FileListFilters.BASE_MODEL) {
       if (baseModelArray.includes(typeLowerCase)) {
         const newBaseModelArray = baseModelArray.filter(
           (baseModelType) => baseModelType !== typeLowerCase,
@@ -201,12 +222,14 @@ export function FileProvider({ children }: { children: React.ReactNode }) {
 
     setBaseModelArray(baseModelType);
     setModelTypeArray(modelType);
+    setMatchStatusArray(matchStatus);
     searchFiles(searchTerm);
   };
 
   const clearFilters = () => {
     setModelTypeArray([]);
     setBaseModelArray([]);
+    setMatchStatusArray([]);
 
     searchFiles(searchTerm);
   };
@@ -219,6 +242,7 @@ export function FileProvider({ children }: { children: React.ReactNode }) {
     sortType,
     modelTypeArray,
     baseModelArray,
+    matchStatusArray,
     fileHashMap,
   ]);
 
@@ -328,6 +352,7 @@ export function FileProvider({ children }: { children: React.ReactNode }) {
         appliedFilters: {
           modelType: modelTypeArray,
           baseModelType: baseModelArray,
+          matchStatus: matchStatusArray,
         },
         fuseList,
         fileHashMap,

@@ -48,48 +48,87 @@ async function fetchModelDescription(modelId: number): Promise<string | null> {
   }
 }
 
-export const getModelByHash = async (hash: string): Promise<Resource> => {
+function buildResourceFromVersionData(
+  data: ModelVersionPayload['data'],
+  hash: string,
+): Resource {
+  const nsfw = getSettings().nsfw;
+  const previewImageUrl = data.images.find((image) => {
+    if (nsfw) return true;
+    if (image.nsfwLevel === 1) return true;
+    return false;
+  })?.url;
+
+  return {
+    hash,
+    url: data.downloadUrl,
+    type: data.model.type,
+    name:
+      data.files.find((file) => file.metadata.format !== 'Other')?.name || '',
+    modelName: data.model.name,
+    modelVersionName: data.name,
+    modelVersionId: data.id,
+    previewImageUrl,
+    trainedWords: data.trainedWords,
+    description: data.description?.trim() || undefined,
+    baseModel: data.baseModel,
+    civitaiUrl: `https://civitai.com/models/${data.modelId}`,
+    source: 'civitai',
+    matchStatus: 'matched',
+  };
+}
+
+export const getModelByVersionId = async (
+  modelVersionId: number,
+): Promise<
+  Omit<Resource, 'hash' | 'localPath' | 'metadata' | 'notes' | 'fileSize' | 'downloadDate'>
+> => {
   try {
     const { data }: ModelVersionPayload = await axios.get(
-      `${CIVITAI_API_URL}/model-versions/by-hash/${hash}`,
+      `${CIVITAI_API_URL}/model-versions/${modelVersionId}`,
     );
 
-    // Filter NSFW based on settings
-    const nsfw = getSettings().nsfw;
-    const previewImageUrl = data.images.find((image) => {
-      // If NSFW is enabled, return the first image
-      if (nsfw) return true;
-
-      // If NSFW is disabled, return the first non-NSFW image
-      if (image.nsfwLevel === 1) return true;
-
-      return false;
-    })?.url;
-
-    // Version description is often empty (see civitai/civitai#813); fetch full model description from /models/:modelId
     const versionDescription = data.description?.trim() || null;
     const modelDescription = data.modelId
       ? await fetchModelDescription(data.modelId)
       : null;
     const description = modelDescription || versionDescription;
 
-    const resource: Resource = {
-      hash,
-      url: data.downloadUrl,
-      type: data.model.type,
-      name:
-        data.files.find((file) => file.metadata.format !== 'Other')?.name || '', // Filename
-      modelName: data.model.name,
-      modelVersionName: data.name,
-      modelVersionId: data.id,
-      previewImageUrl,
-      trainedWords: data.trainedWords,
-      description: description || undefined,
-      baseModel: data.baseModel,
-      civitaiUrl: `https://civitai.com/models/${data.modelId}`,
+    const { hash: _hash, ...resource } = buildResourceFromVersionData(
+      data,
+      '',
+    );
+    return {
+      ...resource,
+      description: description || resource.description,
     };
+  } catch (error: any | AxiosError) {
+    if (error.response) {
+      console.error('Error fetching model by version:', error.response.data);
+      throw new Error(JSON.stringify(error.response.data));
+    } else {
+      throw new Error(`Error fetching model version ${modelVersionId}`);
+    }
+  }
+};
 
-    return resource;
+export const getModelByHash = async (hash: string): Promise<Resource> => {
+  try {
+    const { data }: ModelVersionPayload = await axios.get(
+      `${CIVITAI_API_URL}/model-versions/by-hash/${hash}`,
+    );
+
+    const versionDescription = data.description?.trim() || null;
+    const modelDescription = data.modelId
+      ? await fetchModelDescription(data.modelId)
+      : null;
+    const description = modelDescription || versionDescription;
+
+    const resource = buildResourceFromVersionData(data, hash);
+    return {
+      ...resource,
+      description: description || resource.description,
+    };
   } catch (error: any | AxiosError) {
     if (error.response) {
       console.error('Error fetching model by hash: ', error.response.data);

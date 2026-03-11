@@ -105,6 +105,12 @@ export function useApi() {
     refreshMetadataFromCivitai: async (hash: string): Promise<Resource | null> => {
       return await window.api.refreshMetadataFromCivitai(hash);
     },
+    linkToCivitai: async (params: {
+      hash: string;
+      modelVersionIdOrUrl: string;
+    }): Promise<Resource | null> => {
+      return await window.api.linkToCivitai(params);
+    },
     fetchEnums: async () => {
       return await window.api.fetchEnums();
     },
@@ -113,6 +119,9 @@ export function useApi() {
     },
     fullRescan: async () => {
       return await window.api.fullRescan();
+    },
+    rescanResourceType: async (type: keyof typeof ResourceType) => {
+      return await window.api.rescanResourceType(type);
     },
   };
 }

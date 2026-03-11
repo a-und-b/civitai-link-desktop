@@ -34,10 +34,11 @@ export function Settings() {
     DEBUG,
     isExperimental,
   } = useElectron();
-  const { setNSFW, setAlwaysOnTop, restartApp, setConcurrent, setBaseModelSubfolders, sortLoraFiles, fullRescan, setScanOnStartup } = useApi();
+  const { setNSFW, setAlwaysOnTop, restartApp, setConcurrent, setBaseModelSubfolders, sortLoraFiles, fullRescan, rescanResourceType, setScanOnStartup } = useApi();
   const { toast } = useToast();
   const [isSorting, setIsSorting] = useState(false);
   const [isRescanning, setIsRescanning] = useState(false);
+  const [rescanningType, setRescanningType] = useState<string | null>(null);
 
   const handleFullRescan = async () => {
     setIsRescanning(true);
@@ -55,6 +56,25 @@ export function Settings() {
       });
     } finally {
       setIsRescanning(false);
+    }
+  };
+
+  const handleRescanType = async (type: keyof typeof ResourceType) => {
+    setRescanningType(type);
+    try {
+      await rescanResourceType(type);
+      toast({
+        title: `${ResourceType[type]} Rescan Started`,
+        description: `Scanning ${ResourceType[type]} folder...`,
+      });
+    } catch (error) {
+      toast({
+        title: 'Error Starting Rescan',
+        description: error instanceof Error ? error.message : 'An unknown error occurred',
+        variant: 'destructive',
+      });
+    } finally {
+      setRescanningType(null);
     }
   };
 
@@ -271,7 +291,27 @@ export function Settings() {
                     : ResourceType[key]}{' '}
                   Folder
                 </Label>
-                <PathInput type={key} />
+                <div className="flex gap-2 items-center">
+                  <div className="flex-1 min-w-0">
+                    <PathInput type={key} />
+                  </div>
+                  {key !== 'DEFAULT' && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="shrink-0"
+                      disabled={rescanningType !== null}
+                      onClick={() => handleRescanType(key)}
+                    >
+                      <RefreshCcw
+                        className={`h-4 w-4 ${rescanningType === key ? 'animate-spin' : ''}`}
+                      />
+                      <span className="ml-1.5 sr-only sm:not-sr-only">
+                        {rescanningType === key ? 'Rescanning...' : 'Rescan'}
+                      </span>
+                    </Button>
+                  )}
+                </div>
               </div>
             ))}
             <AlertDialog>

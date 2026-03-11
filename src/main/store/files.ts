@@ -90,6 +90,29 @@ export function clearFiles() {
   store.clear();
 }
 
+/**
+ * Remove only files whose localPath is under the given path prefix.
+ * Used for per-model-type rescan to clear cached data for a specific folder.
+ */
+export function clearFilesByPathPrefix(pathPrefix: string) {
+  const files = store.get('files') as ResourcesMap;
+  if (!files) return;
+
+  const normalizedPrefix = path.resolve(pathPrefix);
+  for (const [hash, file] of Object.entries(files)) {
+    if (file.localPath) {
+      const normalizedPath = path.resolve(file.localPath);
+      const relative = path.relative(normalizedPrefix, normalizedPath);
+      if (!relative.startsWith('..') && relative !== '') {
+        store.delete(`files.${hash.toLowerCase()}`);
+      }
+    }
+  }
+
+  const updatedFiles = store.get('files') as ResourcesMap;
+  getWindow().webContents.send('files-update', updatedFiles);
+}
+
 export function filesByModelVersionIdHash() {
   const files = store.get('files') as ResourcesMap;
 

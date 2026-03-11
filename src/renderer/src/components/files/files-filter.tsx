@@ -59,6 +59,26 @@ export function FilesFilter() {
               )}
             </MenubarSubContent>
           </MenubarSub>
+          <MenubarSub>
+            <MenubarSubTrigger>Match Status</MenubarSubTrigger>
+            <MenubarSubContent>
+              {['matched', 'unmatched', 'user-linked'].map((status) => (
+                <MenubarCheckboxItem
+                  key={status}
+                  onClick={() =>
+                    filterFiles(status, FileListFilters.MATCH_STATUS)
+                  }
+                  checked={appliedFilters.matchStatus.includes(status)}
+                >
+                  {status === 'matched'
+                    ? 'Matched'
+                    : status === 'unmatched'
+                      ? 'Unmatched'
+                      : 'User-linked'}
+                </MenubarCheckboxItem>
+              ))}
+            </MenubarSubContent>
+          </MenubarSub>
           {baseModels.length > 0 && (
             <MenubarSub>
               <MenubarSubTrigger>Base Model</MenubarSubTrigger>

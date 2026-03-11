@@ -19,6 +19,7 @@ declare global {
       setNSFW: (nsfw: boolean) => void;
       setConcurrent: (concurrent: number) => void;
       setBaseModelSubfolders: (baseModelSubfolders: boolean) => void;
+      setScanOnStartup: (scanOnStartup: boolean) => void;
       openModelFileFolder: (filePath: string) => void;
       setApiKey(key: string): void;
       fetchVaultMeta: () => void;
@@ -47,17 +48,29 @@ declare global {
       cancelVaultDownload: (id: number) => void;
       getFileByHash: (hash: string) => Resource;
       refreshMetadataFromCivitai: (hash: string) => Promise<Resource | null>;
+      linkToCivitai: (params: {
+        hash: string;
+        modelVersionIdOrUrl: string;
+      }) => Promise<Resource | null>;
+      sortLoraFiles: () => Promise<unknown>;
+      fullRescan: () => Promise<void>;
+      rescanResourceType: (type: keyof typeof ResourceType) => Promise<void>;
       fetchEnums: () => ApiEnums;
     };
   }
 
+  type ResourceSource = 'civitai' | 'manual' | 'unknown';
+  type ResourceMatchStatus = 'matched' | 'unmatched' | 'user-linked';
+
   type Resource = {
     hash: string;
     name: string; // filename
-    modelName: string;
-    modelVersionName: string;
-    type: string;
-    url: string; // download url
+    /** Display title; fallback order: displayName -> modelName -> name */
+    displayName?: string;
+    modelName?: string;
+    modelVersionName?: string;
+    type?: string;
+    url?: string; // download url (Civitai)
     id?: string;
     modelVersionId?: number;
     downloadDate?: string;
@@ -72,6 +85,14 @@ declare global {
     fileSize?: number; // bytes
     notes?: string;
     metadata?: Record<string, any> | string;
+    /** Provenance: where the record came from */
+    source?: ResourceSource;
+    /** Whether Civitai matched this hash */
+    matchStatus?: ResourceMatchStatus;
+    /** External URL when manually linked (non-Civitai) */
+    originUrl?: string;
+    /** Parsed local metadata when no Civitai match */
+    localOnlyMetadata?: Record<string, unknown>;
   };
 
   type VaultItem = {

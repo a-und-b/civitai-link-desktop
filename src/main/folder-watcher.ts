@@ -4,16 +4,21 @@ import path from 'path';
 import workerpool from 'workerpool';
 import { getModelByHash } from './civitai-api';
 import { isInProgress } from './download-in-progress';
-import { listDirectories } from './list-directory';
+import uniqBy from 'lodash/uniqBy';
+import { listDirectories, listDirectory } from './list-directory';
 import { socketCommandStatus } from './socket';
 import { addFile, deleteFile, findFileByFilename } from './store/files';
-import { addNotFoundFile, searchNotFoundFile } from './store/not-found';
+import { addNotFoundFile } from './store/not-found';
 import { getAllPaths, getRootResourcePath, store } from './store/store';
-import { diffDirectories } from './store/startup-files';
+import { diffDirectories, replaceFilesUnderPaths } from './store/startup-files';
 import { setVault } from './store/vault';
 import { checkMissingFields } from './utils/check-missing-fields';
 import { limitConcurrency } from './utils/concurrency-helpers';
 import { fileStats } from './utils/file-stats';
+import {
+  normalizeLocalResource,
+  type NormalizeLocalResourceInput,
+} from './utils/normalize-local-resource';
 import { safeSend } from './utils/safe-send';
 
 const maxWorkers = os.cpus().length > 1 ? os.cpus().length - 1 : 1;
@@ -111,17 +116,6 @@ async function onAdd(pathname: string, fileSize?: number) {
   const resolvedPath = path.resolve(pathname);
   if (isInProgress(resolvedPath)) return;
 
-  // Short circuit if in not found store
-  const notFoundFile = searchNotFoundFile(pathname);
-  if (notFoundFile) {
-    // Increment progress for skipped files
-    if (scanState.isScanning && fileSize) {
-      scanState.processedSize += fileSize;
-      updateLoader();
-    }
-    return;
-  }
-
   // See if file already exists by filename
   const resource = findFileByFilename(pathname);
 
@@ -169,7 +163,17 @@ async function hashFile(pathname: string, fileSize?: number) {
       await addFile({ ...model, localPath: pathname, metadata });
     } catch (err) {
       addNotFoundFile(pathname, modelHash);
-      console.error('Model not found', err);
+      const stats = await fileStats(pathname);
+      const input: NormalizeLocalResourceInput = {
+        hash: modelHash,
+        localPath: pathname,
+        metadata: (metadata as Record<string, unknown>) || null,
+        fileSize: stats?.fileSize ?? fileSize,
+        downloadDate: stats?.downloadDate,
+      };
+      const localResource = normalizeLocalResource(input);
+      await addFile(localResource);
+      console.log('Added unmatched model to files:', localResource.displayName || localResource.name);
     } finally {
       toHash[pathname].status = 'complete';
       // Increment processed size in scan state
@@ -234,6 +238,23 @@ function updateLoader() {
   if (sent) {
     console.log('[Model Loading]', payload);
   }
+}
+
+/**
+ * Rescan only the specified paths (e.g. a single model type folder).
+ * Clears cached files for those paths and re-processes files on disk.
+ * Caller must clear files/not-found stores before calling this.
+ */
+export async function rescanPaths(paths: string[]) {
+  const existingPaths = paths.filter((p) => p && p !== '');
+  if (existingPaths.length === 0) return;
+
+  const filesPerPath = existingPaths.map((dir) => listDirectory(dir));
+  const allFiles = uniqBy(filesPerPath.flat(), 'pathname');
+
+  replaceFilesUnderPaths(existingPaths, allFiles);
+  processFilesInBackground(allFiles);
+  await setVault();
 }
 
 export async function initFolderCheck() {

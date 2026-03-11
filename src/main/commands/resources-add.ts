@@ -25,7 +25,10 @@ export async function resourcesAdd(params: ResourcesAddParams) {
     trainedWords,
     description,
   } = modelInfo;
-  const resourcePath = getResourcePathWithBaseModel(payload.type, baseModel);
+  const resourcePath = getResourcePathWithBaseModel(
+    payload.type ?? 'Checkpoint',
+    baseModel,
+  );
   const timestamp = new Date().toISOString();
 
   params.socket.emit('commandStatus', {
@@ -47,7 +50,7 @@ export async function resourcesAdd(params: ResourcesAddParams) {
   });
 
   const activity: ActivityItem = {
-    name: payload.modelName,
+    name: payload.modelName ?? payload.name ?? 'Unknown',
     date: timestamp,
     type: 'downloading' as ActivityType,
     civitaiUrl,
@@ -55,15 +58,19 @@ export async function resourcesAdd(params: ResourcesAddParams) {
 
   updateActivity(activity);
 
+  const downloadUrl = payload.url;
+  if (!downloadUrl) {
+    throw new Error('Download URL is required');
+  }
   await downloadFile({
     resource: {
       id: params.id,
       name: payload.name,
-      url: payload.url,
+      url: downloadUrl,
       type: payload.type,
       hash: hashLowercase,
-      modelName: payload.modelName,
-      modelVersionName: payload.modelVersionName,
+      modelName: payload.modelName ?? payload.name,
+      modelVersionName: payload.modelVersionName ?? 'Unknown',
       modelVersionId,
       previewImageUrl,
       civitaiUrl,

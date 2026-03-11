@@ -18,6 +18,7 @@ import { useEffect, useState } from 'react';
 import { StoreInVaultButton } from '../buttons/store-in-vault-button';
 import { FileFetchMetadata } from './file-fetch-metadata';
 import { FileItemDelete } from './file-item-delete';
+import { FileLinkToCivitai } from './file-link-to-civitai';
 
 type FileActionsProps = {
   file: Resource;
@@ -58,6 +59,9 @@ export function FileActions({ file, onRefresh }: FileActionsProps) {
           </TooltipTrigger>
           <TooltipContent side="bottom">Open File in Folder</TooltipContent>
         </Tooltip>
+        {(file.matchStatus === 'matched' ||
+          file.matchStatus === 'user-linked' ||
+          (file.matchStatus === undefined && file.modelVersionId)) && (
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
@@ -65,7 +69,7 @@ export function FileActions({ file, onRefresh }: FileActionsProps) {
               size="icon"
               disabled={isRefreshing}
               onClick={async () => {
-                console.log('[Refresh] User triggered refresh for:', file.modelName, file.hash);
+                console.log('[Refresh] User triggered refresh for:', file.modelName ?? file.name, file.hash);
                 setIsRefreshing(true);
                 try {
                   const updated = await refreshMetadataFromCivitai(file.hash);
@@ -99,6 +103,49 @@ export function FileActions({ file, onRefresh }: FileActionsProps) {
             Refresh metadata from Civitai
           </TooltipContent>
         </Tooltip>
+        )}
+        {(file.matchStatus === 'unmatched' ||
+          (file.matchStatus === undefined && !file.modelVersionId)) && (
+        <>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                disabled={isRefreshing}
+                onClick={async () => {
+                  setIsRefreshing(true);
+                  try {
+                    const updated = await refreshMetadataFromCivitai(file.hash);
+                    if (updated) {
+                      onRefresh?.(updated);
+                      toast({ title: 'Matched on Civitai' });
+                    }
+                  } catch (err) {
+                    toast({
+                      variant: 'destructive',
+                      title: 'No match on Civitai',
+                      description:
+                        err instanceof Error ? err.message : 'Model may not exist on Civitai',
+                    });
+                  } finally {
+                    setIsRefreshing(false);
+                  }
+                }}
+              >
+                <RefreshCw
+                  className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`}
+                />
+                <span className="sr-only">Try match on Civitai</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              Try match on Civitai
+            </TooltipContent>
+          </Tooltip>
+          <FileLinkToCivitai file={file} onLinked={onRefresh} />
+        </>
+        )}
         {file.civitaiUrl ? (
           <Tooltip>
             <TooltipTrigger asChild>

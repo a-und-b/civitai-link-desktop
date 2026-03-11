@@ -42,3 +42,24 @@ export function getNotFoundFiles() {
 export function clearNotFoundFiles() {
   store.clear();
 }
+
+/**
+ * Remove not-found entries whose path is under the given path prefix.
+ * Used for per-model-type rescan.
+ */
+export function clearNotFoundFilesByPath(pathPrefix: string) {
+  const entries = store.get('notFoundFile') as Record<
+    string,
+    { hash: string; path: string; lastScannedDate: Date }
+  >;
+  if (!entries) return;
+
+  const normalizedPrefix = path.resolve(pathPrefix);
+  for (const [filename, entry] of Object.entries(entries)) {
+    if (!entry?.path || typeof entry.path !== 'string') continue;
+    const relative = path.relative(normalizedPrefix, path.resolve(entry.path));
+    if (!relative.startsWith('..') && relative !== '') {
+      store.delete(`notFoundFile.${filename}`);
+    }
+  }
+}

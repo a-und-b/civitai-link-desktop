@@ -54,3 +54,28 @@ export function removeFilesFromStore(files: string[]) {
 
   store.set('startupFiles', newFiles);
 }
+
+/**
+ * Replace files under the given paths with the new file list.
+ * Used for per-model-type rescan: removes old entries under these paths,
+ * then adds the newly scanned files.
+ */
+export function replaceFilesUnderPaths(
+  paths: string[],
+  newFiles: { pathname: string }[],
+) {
+  const oldFiles = (store.get('startupFiles') as string[]) || [];
+  const normalizedPaths = paths.map((p) => path.resolve(p));
+
+  const isUnderPaths = (filePath: string) => {
+    const normalized = path.resolve(filePath);
+    return normalizedPaths.some((prefix) => {
+      const relative = path.relative(prefix, normalized);
+      return !relative.startsWith('..') && relative !== '';
+    });
+  };
+
+  const remaining = oldFiles.filter((f) => !isUnderPaths(f));
+  const newPathnames = newFiles.map((f) => f.pathname);
+  store.set('startupFiles', [...remaining, ...newPathnames]);
+}

@@ -26,6 +26,16 @@ export function ellipsis({
   return str;
 }
 
+/** Display title for a resource; fallback order: displayName -> modelName -> name */
+export function getResourceDisplayName(resource: Resource): string {
+  return (
+    resource.displayName ??
+    resource.modelName ??
+    resource.name ??
+    'Unknown'
+  );
+}
+
 export function isVideoPreview(url: string): boolean {
   const ext = url.split(/[#?]/)[0]?.split('.')?.pop()?.toLowerCase();
   return ext === 'mp4' || ext === 'webm';

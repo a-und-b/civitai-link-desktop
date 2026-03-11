@@ -22,6 +22,7 @@ import { eventOpenRootModelFolder } from './open-root-model-folder';
 import { eventFetchMetadata } from './fetch-metadata';
 import { eventFetchFileNotes, eventSaveFileNotes } from './notes';
 import { eventOpenModelFileFolder } from './open-model-file-folder';
+import { eventLinkToCivitai } from './link-to-civitai';
 import { eventRefreshMetadataFromCivitai } from './refresh-metadata-from-civitai';
 import { eventResourceRemove } from './resource-remove';
 import { eventSearchFile } from './search-file';
@@ -32,6 +33,7 @@ import { eventGetFileByHash } from './files';
 import { eventSetConcurrent } from './set-concurrent';
 import { eventSortLoraFiles } from './sort-lora-files';
 import { eventFullRescan } from './full-rescan';
+import { eventRescanResourceType } from './rescan-resource-type';
 import {
   eventFetchVaultMeta,
   eventFetchVaultModels,
@@ -96,6 +98,14 @@ export function eventsListeners() {
   ipcMain.handle('refresh-metadata-from-civitai', (_, hash: string) =>
     eventRefreshMetadataFromCivitai(_, hash),
   );
+  ipcMain.handle(
+    'link-to-civitai',
+    (
+      _,
+      { hash, modelVersionIdOrUrl }: { hash: string; modelVersionIdOrUrl: string },
+    ) => eventLinkToCivitai(_, { hash, modelVersionIdOrUrl }),
+  );
   ipcMain.handle('sort-lora-files', eventSortLoraFiles);
   ipcMain.handle('full-rescan', eventFullRescan);
+  ipcMain.handle('rescan-resource-type', eventRescanResourceType);
 }

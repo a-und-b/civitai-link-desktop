@@ -8,7 +8,7 @@ import { getUrlExtension } from '../utils/get-url-extension';
 
 export function resourcesRemove(hash: string) {
   const resource = searchFile(hash.toLowerCase());
-  const defaultResourcePath = getResourcePath(resource.type);
+  const defaultResourcePath = getResourcePath(resource.type ?? 'Checkpoint');
   const timestamp = new Date().toISOString();
   const resourcePath =
     resource.localPath || path.join(defaultResourcePath, resource.name);
@@ -38,7 +38,7 @@ export function resourcesRemove(hash: string) {
   deleteFile(hash);
 
   const activity: ActivityItem = {
-    name: resource.modelName,
+    name: resource.modelName ?? resource.name ?? 'Unknown',
     date: timestamp,
     type: 'deleted' as ActivityType,
     civitaiUrl: resource.civitaiUrl,

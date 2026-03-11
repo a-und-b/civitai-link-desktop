@@ -94,12 +94,17 @@ export async function downloadFile({
   downloadPath,
   resource,
 }: DownloadFileParams) {
+  if (!resource.url) {
+    throw new Error('Download URL is required');
+  }
+  const downloadUrl = resource.url;
+
   // Number of parts to split into from settings
   const NUMBER_PARTS = getSettings().concurrent || 10;
   const startTime = performance.now();
   let lastReportedTime = Date.now();
 
-  const fileSize = await getFileSize(resource.url);
+  const fileSize = await getFileSize(downloadUrl);
 
   // If the file size is not available, return (maybe throw an error here?)
   if (!fileSize) return;
@@ -146,7 +151,7 @@ export async function downloadFile({
       });
 
       const activity: ActivityItem = {
-        name: resource.modelName,
+        name: resource.modelName ?? resource.name ?? 'Unknown',
         date: new Date().toISOString(),
         type: 'cancelled' as ActivityType,
         civitaiUrl: resource.civitaiUrl,
@@ -234,7 +239,7 @@ export async function downloadFile({
 
     promises.push(
       downloadChunk({
-        url: resource.url,
+        url: downloadUrl,
         start,
         end,
         index: i,
@@ -312,7 +317,7 @@ export async function downloadFile({
     };
 
     const activity: ActivityItem = {
-      name: resource.modelName,
+      name: resource.modelName ?? resource.name ?? 'Unknown',
       date: timestamp,
       type: 'downloaded' as ActivityType,
       civitaiUrl: resource.civitaiUrl,

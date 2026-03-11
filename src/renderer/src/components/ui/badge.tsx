@@ -37,11 +37,15 @@ function Badge({ className, variant, ...props }: BadgeProps) {
 }
 
 function TypeBadge({ type, ...props }: { type?: string } & BadgeProps) {
-  const typeKey = type?.toUpperCase() as keyof typeof ResourceType;
-  if (!typeKey) return null;
-  const displayType = ResourceType[typeKey];
-  if (!displayType) return null;
-  return <Badge variant="modelTag" {...props}>{ResourceType[typeKey]}</Badge>;
+  const typeKey = type?.toUpperCase().replace(/[\s.]/g, '') as keyof typeof ResourceType;
+  const displayType = typeKey ? ResourceType[typeKey] : undefined;
+  const label = displayType ?? type ?? 'Unknown';
+  if (!label) return null;
+  return (
+    <Badge variant={displayType ? 'modelTag' : 'outline'} {...props}>
+      {label}
+    </Badge>
+  );
 }
 
 export { Badge, TypeBadge, badgeVariants };

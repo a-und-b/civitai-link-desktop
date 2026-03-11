@@ -5,7 +5,7 @@ import { SafeHtml } from '@/components/ui/safe-html';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { useApi } from '@/hooks/use-api';
-import { isVideoPreview } from '@/lib/utils';
+import { getResourceDisplayName, isVideoPreview } from '@/lib/utils';
 import classnames from 'classnames';
 import dayjs from 'dayjs';
 import { Check, Copy, DownloadCloud, Image } from 'lucide-react';
@@ -84,7 +84,7 @@ export function File() {
               <img
                 key={previewKey}
                 src={file.previewImageUrl}
-                alt={file.modelName}
+                alt={getResourceDisplayName(file)}
                 className="aspect-square object-cover object-center rounded-lg max-w-80"
                 onError={() => {
                   console.warn('[Preview] Image failed to load:', file.previewImageUrl);
@@ -100,7 +100,7 @@ export function File() {
               <Image size={24} />
             </div>
           )}
-          <h1>{file?.modelName}</h1>
+          <h1>{getResourceDisplayName(file)}</h1>
           <p className="text-[10px] dark:text-[#909296]">{file.name}</p>
           <table>
             <tbody>
@@ -113,7 +113,14 @@ export function File() {
               <tr>
                 <td>Version</td>
                 <td>
-                  <Badge variant="outline">{file.modelVersionName}</Badge>
+                  <Badge variant="outline">
+                    {file.modelVersionName ?? 'Local file'}
+                  </Badge>
+                  {file.matchStatus === 'unmatched' && (
+                    <Badge variant="secondary" className="ml-1">
+                      Unmatched
+                    </Badge>
+                  )}
                 </td>
               </tr>
               {file.downloadDate ? (

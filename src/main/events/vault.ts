@@ -52,7 +52,7 @@ export async function eventToggleVaultItem(
     // NOTE: This only works from app
     // TODO: Move this event as part of the socket connection
     updateActivity({
-      name: file.modelName,
+      name: file.modelName ?? file.name ?? 'Unknown',
       type: vaultId
         ? ('added vault' as ActivityType)
         : ('removed vault' as ActivityType),

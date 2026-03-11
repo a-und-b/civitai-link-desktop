@@ -67,8 +67,14 @@ const api = {
   getFileByHash: (hash: string) => ipcRenderer.invoke('get-file-by-hash', hash),
   refreshMetadataFromCivitai: (hash: string) =>
     ipcRenderer.invoke('refresh-metadata-from-civitai', hash),
+  linkToCivitai: (params: {
+    hash: string;
+    modelVersionIdOrUrl: string;
+  }) => ipcRenderer.invoke('link-to-civitai', params),
   sortLoraFiles: () => ipcRenderer.invoke('sort-lora-files'),
   fullRescan: () => ipcRenderer.invoke('full-rescan'),
+  rescanResourceType: (type: keyof typeof ResourceType) =>
+    ipcRenderer.invoke('rescan-resource-type', type),
 };
 
 // Use `contextBridge` APIs to expose Electron APIs to
