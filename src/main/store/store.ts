@@ -24,11 +24,14 @@ export enum Resources {
 }
 
 // Base model to folder name mappings for organizing LoRAs, LoCons, and DoRAs
-// Updated from Civitai API /api/v1/enums
+// Keys match Civitai `BaseModel` from GET https://civitai.com/api/v1/enums.
 export const BASE_MODEL_FOLDERS: Record<string, string> = {
-  // Flux models
-  'Flux.1 D': 'F1D',
+  'Anima': 'Anima',
+  'AuraFlow': 'Aura',
+  'Chroma': 'Chroma',
+  'CogVideoX': 'CogVideo',
   'Flux.1 S': 'F1S',
+  'Flux.1 D': 'F1D',
   'Flux.1 Krea': 'F1Krea',
   'Flux.1 Kontext': 'F1Kontext',
   'Flux.2 D': 'F2D',
@@ -36,55 +39,58 @@ export const BASE_MODEL_FOLDERS: Record<string, string> = {
   'Flux.2 Klein 9B-base': 'F2K9B-base',
   'Flux.2 Klein 4B': 'F2K4B',
   'Flux.2 Klein 4B-base': 'F2K4B-base',
-
-  // Stable Diffusion 1.x
+  'HiDream': 'HiDream',
+  'Hunyuan 1': 'HY1',
+  'Hunyuan Video': 'HYVideo',
+  'Illustrious': 'Illus',
+  'Imagen4': 'Imagen4',
+  'Kling': 'Kling',
+  'Kolors': 'Kolors',
+  'LTXV': 'LTXV',
+  'LTXV2': 'LTXV2',
+  'LTXV 2.3': 'LTXV-2.3',
+  'Lumina': 'Lumina',
+  'Mochi': 'Mochi',
+  'Nano Banana': 'NanoBanana',
+  'NoobAI': 'NoobAI',
+  'ODOR': 'ODOR',
+  'OpenAI': 'OpenAI',
+  'Other': 'Other',
+  'PixArt a': 'PixArt-a',
+  'PixArt E': 'PixArt-E',
+  'Playground v2': 'PlayGnd',
+  'Pony': 'Pony',
+  'Pony V7': 'PonyV7',
+  'Qwen': 'Qwen',
+  'Stable Cascade': 'SC',
   'SD 1.4': 'SD14',
   'SD 1.5': 'SD15',
   'SD 1.5 LCM': 'SD15LCM',
   'SD 1.5 Hyper': 'SD15Hyper',
-
-  // Stable Diffusion 2.x
   'SD 2.0': 'SD20',
   'SD 2.0 768': 'SD20-768',
   'SD 2.1': 'SD21',
   'SD 2.1 768': 'SD21-768',
   'SD 2.1 Unclip': 'SD21Unclip',
-
-  // Stable Diffusion 3.x
   'SD 3': 'SD3',
   'SD 3.5': 'SD35',
   'SD 3.5 Large': 'SD35L',
   'SD 3.5 Large Turbo': 'SD35LT',
   'SD 3.5 Medium': 'SD35M',
-
-  // SDXL variants
+  'Sora 2': 'Sora2',
   'SDXL 0.9': 'SDXL09',
   'SDXL 1.0': 'SDXL',
   'SDXL 1.0 LCM': 'SDXL-LCM',
-  'SDXL Turbo': 'SDXLT',
   'SDXL Lightning': 'SDXLL',
   'SDXL Hyper': 'SDXLH',
+  'SDXL Turbo': 'SDXLT',
   'SDXL Distilled': 'SDXL-Dist',
-
-  // Pony and derivatives
-  'Pony': 'Pony',
-  'Pony V7': 'PonyV7',
-
-  // Illustrious and NoobAI
-  'Illustrious': 'Illus',
-  'NoobAI': 'NoobAI',
-
-  // Asian models
-  'Hunyuan 1': 'HY1',
-  'Hunyuan Video': 'HYVideo',
-  'Kolors': 'Kolors',
-
-  // Video models
-  'CogVideoX': 'CogVideo',
-  'LTXV': 'LTXV',
-  'Mochi': 'Mochi',
+  'Seedance': 'Seedance',
+  'Seedream': 'Seedream',
   'SVD': 'SVD',
   'SVD XT': 'SVDXT',
+  'Veo 3': 'Veo3',
+  'Vidu Q1': 'ViduQ1',
   'Wan Video': 'WanVideo',
   'Wan Video 1.3B t2v': 'WanV-1.3B',
   'Wan Video 14B t2v': 'WanV-14B-t2v',
@@ -95,30 +101,8 @@ export const BASE_MODEL_FOLDERS: Record<string, string> = {
   'Wan Video 2.2 T2V-A14B': 'WanV-2.2-T2V',
   'Wan Video 2.5 T2V': 'WanV-2.5-T2V',
   'Wan Video 2.5 I2V': 'WanV-2.5-I2V',
-  'Veo 3': 'Veo3',
-  'Sora 2': 'Sora2',
-
-  // Other generative models
-  'AuraFlow': 'Aura',
-  'Chroma': 'Chroma',
-  'HiDream': 'HiDream',
-  'Lumina': 'Lumina',
-  'PixArt a': 'PixArt-a',
-  'PixArt E': 'PixArt-E',
-  'Playground v2': 'PlayGnd',
-  'Qwen': 'Qwen',
-  'Stable Cascade': 'SC',
-  'Seedream': 'Seedream',
   'ZImageTurbo': 'ZIT',
-
-  // Proprietary/closed models
-  'Imagen4': 'Imagen4',
-  'OpenAI': 'OpenAI',
-  'Nano Banana': 'NanoBanana',
-  'ODOR': 'ODOR',
-
-  // Other
-  'Other': 'Other',
+  'ZImageBase': 'ZImageBase',
 };
 
 const schema: Schema<Record<string, unknown>> = {
