@@ -12,6 +12,23 @@ import { createPreviewImage } from '../utils/create-preview-image';
 import { createModelJson } from '../utils/create-model-json';
 
 const FILE_TYPES = ['.pt', '.safetensors', '.ckpt', '.bin'];
+const UNKNOWN_SUBFOLDER = 'Unknown';
+
+function listModelFilenamesInDir(dirPath: string): string[] {
+  if (!fs.existsSync(dirPath)) {
+    return [];
+  }
+  return fs.readdirSync(dirPath).filter((item) => {
+    const fullPath = path.join(dirPath, item);
+    try {
+      const isFile = fs.statSync(fullPath).isFile();
+      const isModelFile = FILE_TYPES.some((ext) => item.endsWith(ext));
+      return isFile && isModelFile;
+    } catch {
+      return false;
+    }
+  });
+}
 
 type SortResult = {
   total: number;
@@ -40,23 +57,22 @@ export async function eventSortLoraFiles(
       throw new Error(`LoRA directory does not exist: ${loraPath}`);
     }
 
-    // Get only root-level files (not in subfolders)
-    const allItems = fs.readdirSync(loraPath);
-    const rootFiles = allItems.filter((item) => {
-      const fullPath = path.join(loraPath, item);
-      try {
-        const isFile = fs.statSync(fullPath).isFile();
-        const isModelFile = FILE_TYPES.some((ext) => item.endsWith(ext));
-        return isFile && isModelFile;
-      } catch (error) {
-        // File might have been moved already or doesn't exist, skip it
-        return false;
-      }
-    });
+    // Root-level models plus models in Unknown/ (single snapshot — no rescan loop)
+    const unknownDir = path.join(loraPath, UNKNOWN_SUBFOLDER);
+    const jobs = [
+      ...listModelFilenamesInDir(loraPath).map((filename) => ({
+        filename,
+        sourceDir: loraPath,
+      })),
+      ...listModelFilenamesInDir(unknownDir).map((filename) => ({
+        filename,
+        sourceDir: unknownDir,
+      })),
+    ];
 
-    result.total = rootFiles.length;
+    result.total = jobs.length;
 
-    if (rootFiles.length === 0) {
+    if (jobs.length === 0) {
       getWindow().webContents.send('lora-sort-progress', {
         message: 'No files to sort',
         current: 0,
@@ -66,13 +82,15 @@ export async function eventSortLoraFiles(
     }
 
     // Create tasks for processing
-    const tasks = rootFiles.map((filename) => async () => {
-      const filePath = path.join(loraPath, filename);
+    const tasks = jobs.map(({ filename, sourceDir }) => async () => {
+      const filePath = path.join(sourceDir, filename);
 
       try {
         // Check if file still exists (might have been moved already)
         if (!fs.existsSync(filePath)) {
-          console.log(`Skipping ${filename} - file no longer exists at root`);
+          console.log(
+            `Skipping ${filename} - file no longer exists under ${sourceDir}`,
+          );
           return;
         }
 
@@ -87,7 +105,7 @@ export async function eventSortLoraFiles(
         const fileHash = await hash(filePath);
 
         // Try to get model info from Civitai
-        let targetSubfolder = 'Unknown';
+        let targetSubfolder = UNKNOWN_SUBFOLDER;
         let modelInfo: Resource | undefined;
         try {
           modelInfo = await getModelByHash(fileHash);
@@ -96,20 +114,24 @@ export async function eventSortLoraFiles(
           if (baseModel && BASE_MODEL_FOLDERS[baseModel]) {
             targetSubfolder = BASE_MODEL_FOLDERS[baseModel];
           } else {
-            targetSubfolder = 'Unknown';
+            targetSubfolder = UNKNOWN_SUBFOLDER;
           }
         } catch (error) {
           // Model not found on Civitai, use Unknown folder
-          targetSubfolder = 'Unknown';
+          targetSubfolder = UNKNOWN_SUBFOLDER;
         }
 
         // Create target directory
         const targetDir = path.join(loraPath, targetSubfolder);
         findOrCreateFolder(targetDir);
 
-        // Move the model file
+        // Move the model file (skip if already in the right place — e.g. still Unknown)
         const targetPath = path.join(targetDir, filename);
-        await fs.promises.rename(filePath, targetPath);
+        const sameLocation =
+          path.resolve(filePath) === path.resolve(targetPath);
+        if (!sameLocation) {
+          await fs.promises.rename(filePath, targetPath);
+        }
 
         // Move associated files (.json and preview images/videos)
         const baseName = path.parse(filename).name;
@@ -128,17 +150,21 @@ export async function eventSortLoraFiles(
         ];
 
         for (const assocFile of associatedFiles) {
-          const assocPath = path.join(loraPath, assocFile);
-          if (fs.existsSync(assocPath)) {
-            const assocTargetPath = path.join(targetDir, assocFile);
-            try {
-              await fs.promises.rename(assocPath, assocTargetPath);
-            } catch (err) {
-              console.warn(
-                `Could not move associated file ${assocFile}:`,
-                err,
-              );
-            }
+          const assocPath = path.join(sourceDir, assocFile);
+          const assocTargetPath = path.join(targetDir, assocFile);
+          if (!fs.existsSync(assocPath)) {
+            continue;
+          }
+          if (path.resolve(assocPath) === path.resolve(assocTargetPath)) {
+            continue;
+          }
+          try {
+            await fs.promises.rename(assocPath, assocTargetPath);
+          } catch (err) {
+            console.warn(
+              `Could not move associated file ${assocFile}:`,
+              err,
+            );
           }
         }
 
@@ -157,7 +183,7 @@ export async function eventSortLoraFiles(
         }
 
         // Update counters
-        if (targetSubfolder === 'Unknown') {
+        if (targetSubfolder === UNKNOWN_SUBFOLDER) {
           result.unknown++;
         } else {
           result.moved++;
