@@ -34,10 +34,22 @@ export function Settings() {
     DEBUG,
     isExperimental,
   } = useElectron();
-  const { setNSFW, setAlwaysOnTop, restartApp, setConcurrent, setBaseModelSubfolders, sortLoraFiles, fullRescan, rescanResourceType, setScanOnStartup } = useApi();
+  const {
+    setNSFW,
+    setAlwaysOnTop,
+    restartApp,
+    setConcurrent,
+    setBaseModelSubfolders,
+    sortLoraFiles,
+    fullRescan,
+    rescanResourceType,
+    discoverNewResourceType,
+    setScanOnStartup,
+  } = useApi();
   const { toast } = useToast();
   const [isSorting, setIsSorting] = useState(false);
   const [isRescanning, setIsRescanning] = useState(false);
+  const [isDiscoveringLoras, setIsDiscoveringLoras] = useState(false);
   const [rescanningType, setRescanningType] = useState<string | null>(null);
 
   const handleFullRescan = async () => {
@@ -81,7 +93,12 @@ export function Settings() {
   const handleSortLoras = async () => {
     setIsSorting(true);
     try {
-      const result = await sortLoraFiles();
+      const result = (await sortLoraFiles()) as {
+        moved: number;
+        unknown: number;
+        errors: number;
+        errorDetails: string[];
+      };
       
       const successMessage = `Sorting complete! Moved: ${result.moved}, Unknown: ${result.unknown}${result.errors > 0 ? `, Errors: ${result.errors}` : ''}`;
       
@@ -102,6 +119,29 @@ export function Settings() {
       });
     } finally {
       setIsSorting(false);
+    }
+  };
+
+  const handleDiscoverNewLoras = async () => {
+    setIsDiscoveringLoras(true);
+    try {
+      const result: { total: number; queued: number; skipped: number } =
+        await discoverNewResourceType('LORA');
+      toast({
+        title: 'LoRA Discovery Complete',
+        description:
+          result.queued > 0
+            ? `Queued ${result.queued} new file${result.queued === 1 ? '' : 's'} and skipped ${result.skipped} existing file${result.skipped === 1 ? '' : 's'}.`
+            : `No new files found. Checked ${result.total} file${result.total === 1 ? '' : 's'}.`,
+      });
+    } catch (error) {
+      toast({
+        title: 'Error Discovering New LoRAs',
+        description: error instanceof Error ? error.message : 'An unknown error occurred',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsDiscoveringLoras(false);
     }
   };
 
@@ -190,6 +230,15 @@ export function Settings() {
             </div>
             <div className="flex flex-col gap-2">
               <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="w-fit"
+                  disabled={isDiscoveringLoras}
+                  onClick={handleDiscoverNewLoras}
+                >
+                  <RefreshCcw className="mr-2 h-4 w-4" />
+                  {isDiscoveringLoras ? 'Discovering...' : 'Discover New LoRAs'}
+                </Button>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button 

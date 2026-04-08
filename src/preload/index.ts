@@ -75,6 +75,8 @@ const api = {
   fullRescan: () => ipcRenderer.invoke('full-rescan'),
   rescanResourceType: (type: keyof typeof ResourceType) =>
     ipcRenderer.invoke('rescan-resource-type', type),
+  discoverNewResourceType: (type: keyof typeof ResourceType) =>
+    ipcRenderer.invoke('discover-new-resource-type', type),
 };
 
 // Use `contextBridge` APIs to expose Electron APIs to

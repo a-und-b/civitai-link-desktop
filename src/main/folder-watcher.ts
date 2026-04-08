@@ -5,12 +5,21 @@ import workerpool from 'workerpool';
 import { getModelByHash } from './civitai-api';
 import { isInProgress } from './download-in-progress';
 import uniqBy from 'lodash/uniqBy';
-import { listDirectories, listDirectory } from './list-directory';
+import { listDirectories, listDirectory, listDirectoryAsync } from './list-directory';
 import { socketCommandStatus } from './socket';
-import { addFile, deleteFile, findFileByFilename } from './store/files';
+import {
+  addFile,
+  deleteFile,
+  findFileByFilename,
+  getIndexedLocalPathSet,
+} from './store/files';
 import { addNotFoundFile } from './store/not-found';
 import { getAllPaths, getRootResourcePath, store } from './store/store';
-import { diffDirectories, replaceFilesUnderPaths } from './store/startup-files';
+import {
+  addFilesToStartupStore,
+  diffDirectories,
+  replaceFilesUnderPaths,
+} from './store/startup-files';
 import { setVault } from './store/vault';
 import { checkMissingFields } from './utils/check-missing-fields';
 import { limitConcurrency } from './utils/concurrency-helpers';
@@ -255,6 +264,67 @@ export async function rescanPaths(paths: string[]) {
   replaceFilesUnderPaths(existingPaths, allFiles);
   processFilesInBackground(allFiles);
   await setVault();
+}
+
+export async function discoverNewFilesInPaths(paths: string[]) {
+  const existingPaths = paths.filter((p) => p && p !== '');
+  if (existingPaths.length === 0) {
+    return { total: 0, queued: 0, skipped: 0 };
+  }
+
+  const scanStartedAt = Date.now();
+  console.log(
+    `[Discover New] Enumerating ${existingPaths.length} path(s) for new models...`,
+  );
+
+  const filesPerPath: { pathname: string; filename: string }[][] = [];
+  for (const dir of existingPaths) {
+    const directoryStartedAt = Date.now();
+    const files = await listDirectoryAsync(dir);
+    console.log(
+      `[Discover New] Enumerated ${files.length} candidate file(s) from ${dir} in ${Date.now() - directoryStartedAt}ms`,
+    );
+    filesPerPath.push(files);
+  }
+  const allFiles = uniqBy(filesPerPath.flat(), 'pathname');
+  console.log(
+    `[Discover New] Found ${allFiles.length} unique candidate file(s) in ${Date.now() - scanStartedAt}ms`,
+  );
+
+  const indexedPaths = getIndexedLocalPathSet();
+  console.log(
+    `[Discover New] Indexed ${indexedPaths.size} existing local file path(s) for membership checks.`,
+  );
+
+  const filterStartedAt = Date.now();
+  const newFiles = allFiles.filter(
+    ({ pathname }) => !indexedPaths.has(path.resolve(pathname)),
+  );
+  const skipped = allFiles.length - newFiles.length;
+  console.log(
+    `[Discover New] Queued ${newFiles.length} new file(s) and skipped ${skipped} existing file(s) in ${Date.now() - filterStartedAt}ms`,
+  );
+
+  if (newFiles.length > 0) {
+    addFilesToStartupStore(newFiles.map((file) => file.pathname));
+    console.log(
+      `[Discover New] Starting background processing for ${newFiles.length} new file(s).`,
+    );
+    void processFilesInBackground(newFiles).catch((error) => {
+      console.error('[Discover New] Background processing failed:', error);
+    });
+  }
+
+  // Keep the discover-only action responsive; vault refresh can run in the background.
+  void setVault().catch((error) => {
+    console.error('[Discover New] Background vault refresh failed:', error);
+  });
+
+  return {
+    total: allFiles.length,
+    queued: newFiles.length,
+    skipped,
+  };
 }
 
 export async function initFolderCheck() {

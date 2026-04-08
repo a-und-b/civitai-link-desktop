@@ -25,6 +25,7 @@ import { eventOpenModelFileFolder } from './open-model-file-folder';
 import { eventLinkToCivitai } from './link-to-civitai';
 import { eventRefreshMetadataFromCivitai } from './refresh-metadata-from-civitai';
 import { eventResourceRemove } from './resource-remove';
+import { eventDiscoverNewResourceType } from './discover-new-resource-type';
 import { eventSearchFile } from './search-file';
 
 // Vault Events
@@ -108,4 +109,5 @@ export function eventsListeners() {
   ipcMain.handle('sort-lora-files', eventSortLoraFiles);
   ipcMain.handle('full-rescan', eventFullRescan);
   ipcMain.handle('rescan-resource-type', eventRescanResourceType);
+  ipcMain.handle('discover-new-resource-type', eventDiscoverNewResourceType);
 }

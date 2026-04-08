@@ -66,6 +66,31 @@ export function findFileByFilename(filename: string) {
   return file;
 }
 
+export function findFileByPath(localPath: string) {
+  const normalizedPath = path.resolve(localPath);
+  const files = store.get('files') as ResourcesMap;
+
+  const file = Object.values(files).find((file) => {
+    if (!file.localPath) return false;
+    return path.resolve(file.localPath) === normalizedPath;
+  });
+
+  if (!file) return;
+
+  return file;
+}
+
+export function getIndexedLocalPathSet() {
+  const files = store.get('files') as ResourcesMap;
+
+  return new Set(
+    Object.values(files)
+      .map((file) => file.localPath)
+      .filter((localPath): localPath is string => Boolean(localPath))
+      .map((localPath) => path.resolve(localPath)),
+  );
+}
+
 export function searchFileByModelVersionId(modelVersionId: number) {
   const files = store.get('files') as ResourcesMap;
 

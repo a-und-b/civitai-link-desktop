@@ -55,6 +55,11 @@ declare global {
       sortLoraFiles: () => Promise<unknown>;
       fullRescan: () => Promise<void>;
       rescanResourceType: (type: keyof typeof ResourceType) => Promise<void>;
+      discoverNewResourceType: (type: keyof typeof ResourceType) => Promise<{
+        total: number;
+        queued: number;
+        skipped: number;
+      }>;
       fetchEnums: () => ApiEnums;
     };
   }

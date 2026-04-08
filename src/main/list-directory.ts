@@ -36,14 +36,62 @@ export function listDirectory(directory: string) {
     .map((file) => mapFiles(file, directory));
 }
 
+export async function listDirectoryAsync(
+  directory: string,
+  options?: { yieldEvery?: number },
+) {
+  if (!fs.existsSync(directory)) return [];
+
+  const yieldEvery = options?.yieldEvery ?? 25;
+  const files: { pathname: string; filename: string }[] = [];
+  const directoriesToScan = [''];
+  let processedDirectories = 0;
+
+  while (directoriesToScan.length > 0) {
+    const relativeDirectory = directoriesToScan.shift();
+    if (relativeDirectory === undefined) break;
+
+    const absoluteDirectory = relativeDirectory
+      ? path.join(directory, relativeDirectory)
+      : directory;
+    const entries = await fs.promises.readdir(absoluteDirectory, {
+      withFileTypes: true,
+    });
+
+    for (const entry of entries) {
+      const relativePath = relativeDirectory
+        ? path.join(relativeDirectory, entry.name)
+        : entry.name;
+
+      if (entry.isDirectory()) {
+        directoriesToScan.push(relativePath);
+        continue;
+      }
+
+      if (entry.isFile() && filterFileTypes(relativePath)) {
+        files.push(mapFiles(relativePath, directory));
+      }
+    }
+
+    processedDirectories++;
+    if (processedDirectories % yieldEvery === 0) {
+      await new Promise<void>((resolve) => setImmediate(resolve));
+    }
+  }
+
+  return files;
+}
+
 function filterFileTypes(file: string | Buffer) {
+  const normalizedPath = file.toString().replace(/\\/g, '/');
+
   // Exclude files containing any exclude pattern
-  if (EXCLUDE_TYPES.some((x) => file.includes(x))) {
+  if (EXCLUDE_TYPES.some((x) => normalizedPath.includes(x))) {
     return false;
   }
   
   // Include only valid model file types
-  return FILE_TYPES.some((x) => file.includes(x));
+  return FILE_TYPES.some((x) => normalizedPath.includes(x));
 }
 
 function mapFiles(file: string | Buffer, directory: string) {

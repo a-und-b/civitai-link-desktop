@@ -123,5 +123,10 @@ export function useApi() {
     rescanResourceType: async (type: keyof typeof ResourceType) => {
       return await window.api.rescanResourceType(type);
     },
+    discoverNewResourceType: async (
+      type: keyof typeof ResourceType,
+    ): Promise<{ total: number; queued: number; skipped: number }> => {
+      return await window.api.discoverNewResourceType(type);
+    },
   };
 }

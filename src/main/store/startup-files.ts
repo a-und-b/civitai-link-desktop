@@ -1,6 +1,7 @@
 import { app } from 'electron';
 import Store, { Schema } from 'electron-store';
 import difference from 'lodash/difference';
+import uniq from 'lodash/uniq';
 import { findFileByFilename, updateFile } from './files';
 import path from 'path';
 
@@ -80,4 +81,9 @@ export function replaceFilesUnderPaths(
   const remaining = oldFiles.filter((f) => !isUnderPaths(f));
   const newPathnames = newFiles.map((f) => f.pathname);
   store.set('startupFiles', [...remaining, ...newPathnames]);
+}
+
+export function addFilesToStartupStore(files: string[]) {
+  const oldFiles = (store.get('startupFiles') as string[]) || [];
+  store.set('startupFiles', uniq([...oldFiles, ...files]));
 }
