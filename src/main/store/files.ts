@@ -1,7 +1,6 @@
 import { app } from 'electron';
 import Store, { Schema } from 'electron-store';
 import path from 'path';
-import { getWindow } from '../browser-window';
 import { safeSend } from '../utils/safe-send';
 import { createModelJson } from '../utils/create-model-json';
 import { createPreviewImage } from '../utils/create-preview-image';
@@ -19,6 +18,66 @@ const schema: Schema<Record<string, unknown>> = {
 const storeName = app.isPackaged ? undefined : 'experimental';
 
 export const store = new Store({ schema, name: storeName });
+
+// electron-store re-reads/re-parses the whole JSON file on every get() and
+// rewrites it on every set(). Scanning thousands of files would otherwise do
+// thousands of full-file read/writes and IPC broadcasts. Instead we keep the
+// authoritative copy in memory and debounce persistence + IPC broadcasts.
+let files: ResourcesMap = (store.get('files') as ResourcesMap) || {};
+const filenameIndex = new Map<string, string>();
+for (const [hash, file] of Object.entries(files)) {
+  if (file.name) filenameIndex.set(file.name, hash);
+}
+
+const PERSIST_DEBOUNCE_MS = 1000;
+let persistTimeout: NodeJS.Timeout | undefined;
+
+function schedulePersist() {
+  if (persistTimeout) return;
+  persistTimeout = setTimeout(() => {
+    persistTimeout = undefined;
+    store.set('files', files);
+  }, PERSIST_DEBOUNCE_MS);
+}
+
+/** Persist immediately, bypassing the debounce. Call before app quit. */
+export function flushFiles() {
+  if (persistTimeout) {
+    clearTimeout(persistTimeout);
+    persistTimeout = undefined;
+  }
+  store.set('files', files);
+}
+
+const BROADCAST_DEBOUNCE_MS = 500;
+let broadcastTimeout: NodeJS.Timeout | undefined;
+
+function scheduleBroadcast() {
+  if (broadcastTimeout) return;
+  broadcastTimeout = setTimeout(() => {
+    broadcastTimeout = undefined;
+    safeSend('files-update', files);
+  }, BROADCAST_DEBOUNCE_MS);
+}
+
+function setFile(hash: string, file: Resource) {
+  const existing = files[hash];
+  if (existing?.name && existing.name !== file.name) {
+    filenameIndex.delete(existing.name);
+  }
+  files[hash] = file;
+  if (file.name) filenameIndex.set(file.name, hash);
+  schedulePersist();
+  scheduleBroadcast();
+}
+
+function removeFile(hash: string) {
+  const existing = files[hash];
+  if (existing?.name) filenameIndex.delete(existing.name);
+  delete files[hash];
+  schedulePersist();
+  scheduleBroadcast();
+}
 
 export async function addFile(file: Resource) {
   const stats = await fileStats(file.localPath);
@@ -38,51 +97,34 @@ export async function addFile(file: Resource) {
   createModelJson(file);
   createPreviewImage(file);
 
-  store.set(`files.${file.hash.toLowerCase()}`, fileToAdd);
-
-  const files = store.get('files') as ResourcesMap;
-
-  getWindow().webContents.send('files-update', files);
-
-  return;
+  setFile(fileToAdd.hash, fileToAdd);
 }
 
 export function deleteFile(hash: string) {
-  return store.delete(`files.${hash.toLowerCase()}`);
+  removeFile(hash.toLowerCase());
 }
 
 export function searchFile(hash: string) {
-  return store.get(`files.${hash.toLowerCase()}`) as Resource;
+  return files[hash.toLowerCase()];
 }
 
 export function findFileByFilename(filename: string) {
   filename = path.basename(filename);
-  const files = store.get('files') as ResourcesMap;
+  const hash = filenameIndex.get(filename);
 
-  const file = Object.values(files).find((file) => file.name == filename);
-
-  if (!file) return;
-
-  return file;
+  return hash ? files[hash] : undefined;
 }
 
 export function findFileByPath(localPath: string) {
   const normalizedPath = path.resolve(localPath);
-  const files = store.get('files') as ResourcesMap;
 
-  const file = Object.values(files).find((file) => {
+  return Object.values(files).find((file) => {
     if (!file.localPath) return false;
     return path.resolve(file.localPath) === normalizedPath;
   });
-
-  if (!file) return;
-
-  return file;
 }
 
 export function getIndexedLocalPathSet() {
-  const files = store.get('files') as ResourcesMap;
-
   return new Set(
     Object.values(files)
       .map((file) => file.localPath)
@@ -92,15 +134,11 @@ export function getIndexedLocalPathSet() {
 }
 
 export function searchFileByModelVersionId(modelVersionId: number) {
-  const files = store.get('files') as ResourcesMap;
-
   const hash = Object.keys(files).find(
     (hash) => files[hash.toLowerCase()].modelVersionId === modelVersionId,
   );
 
-  if (!hash) return;
-
-  return files[hash];
+  return hash ? files[hash] : undefined;
 }
 
 export function updateFile(file: Resource) {
@@ -108,19 +146,22 @@ export function updateFile(file: Resource) {
   if (file.localPath) {
     normalized.name = path.basename(file.localPath);
   }
-  store.set(`files.${normalized.hash}`, normalized);
-
-  const files = store.get('files') as ResourcesMap;
-  safeSend('files-update', files);
+  setFile(normalized.hash, normalized);
 }
 
 export function getFiles() {
-  const files = store.get('files') as ResourcesMap;
-  return sortFiles(files);
+  return files;
 }
 
 export function clearFiles() {
+  files = {};
+  filenameIndex.clear();
+  if (persistTimeout) {
+    clearTimeout(persistTimeout);
+    persistTimeout = undefined;
+  }
   store.clear();
+  scheduleBroadcast();
 }
 
 /**
@@ -128,66 +169,23 @@ export function clearFiles() {
  * Used for per-model-type rescan to clear cached data for a specific folder.
  */
 export function clearFilesByPathPrefix(pathPrefix: string) {
-  const files = store.get('files') as ResourcesMap;
-  if (!files) return;
-
   const normalizedPrefix = path.resolve(pathPrefix);
   for (const [hash, file] of Object.entries(files)) {
     if (file.localPath) {
       const normalizedPath = path.resolve(file.localPath);
       const relative = path.relative(normalizedPrefix, normalizedPath);
       if (!relative.startsWith('..') && relative !== '') {
-        store.delete(`files.${hash.toLowerCase()}`);
+        removeFile(hash);
       }
     }
   }
-
-  const updatedFiles = store.get('files') as ResourcesMap;
-  getWindow().webContents.send('files-update', updatedFiles);
 }
 
 export function filesByModelVersionIdHash() {
-  const files = store.get('files') as ResourcesMap;
-
-  return Object.values(files).reduce(
-    (acc: Record<string, Resource>, file: Resource) => {
-      if (!file.modelVersionId) return acc;
-
-      return {
-        ...acc,
-        [file.modelVersionId]: file,
-      };
-    },
-    {},
-  );
-}
-
-function sortFiles(files: ResourcesMap) {
-  const sortedFiles = Object.values(files)
-    .sort((a, b) => {
-      const filteredFileListA = a.downloadDate;
-      const filteredFileListB = b.downloadDate;
-
-      if (!filteredFileListA) return 1;
-      if (!filteredFileListB) return -1;
-
-      return (
-        new Date(filteredFileListB).getTime() -
-        new Date(filteredFileListA).getTime()
-      );
-    })
-    .reduce(
-      (
-        acc: Record<string, Resource>,
-        file: Resource,
-      ): Record<string, Resource> => {
-        return {
-          ...acc,
-          [file.hash]: file,
-        };
-      },
-      {},
-    );
-
-  return sortedFiles;
+  const result: Record<string, Resource> = {};
+  for (const file of Object.values(files)) {
+    if (!file.modelVersionId) continue;
+    result[file.modelVersionId] = file;
+  }
+  return result;
 }

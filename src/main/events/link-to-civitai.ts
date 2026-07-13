@@ -1,7 +1,6 @@
 import { IpcMainInvokeEvent } from 'electron';
 import { getModelByVersionId } from '../civitai-api';
-import { getWindow } from '../browser-window';
-import { searchFile, store, updateFile } from '../store/files';
+import { searchFile, updateFile } from '../store/files';
 import { createPreviewImage } from '../utils/create-preview-image';
 import { createModelJson } from '../utils/create-model-json';
 
@@ -73,9 +72,6 @@ export async function eventLinkToCivitai(
   updateFile(updatedFile);
   createPreviewImage(updatedFile);
   createModelJson(updatedFile);
-
-  const files = store.get('files') as ResourcesMap;
-  getWindow().webContents.send('files-update', files);
 
   console.log('[Link] Successfully linked to Civitai:', updatedFile.modelName);
   return updatedFile;

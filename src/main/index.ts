@@ -14,6 +14,7 @@ import { autoUpdater } from 'electron-updater';
 import { eventsListeners } from './events';
 import { cleanupWatcher, folderWatcher } from './folder-watcher';
 import { socketIOConnect } from './socket';
+import { flushFiles } from './store/files';
 import { getResourcePath, getRootResourcePath } from './store/store';
 import {
   ConnectionStatus,
@@ -237,6 +238,7 @@ app.on('activate', function () {
 
 app.on('before-quit', async () => {
   log.info('App is quitting, cleaning up watchers...');
+  flushFiles();
   await cleanupWatcher();
 });
 

@@ -1,8 +1,7 @@
 import { IpcMainInvokeEvent } from 'electron';
 import { getModelByHash } from '../civitai-api';
 import { createPreviewImage } from '../utils/create-preview-image';
-import { getWindow } from '../browser-window';
-import { searchFile, store } from '../store/files';
+import { searchFile, updateFile } from '../store/files';
 
 export async function eventRefreshMetadataFromCivitai(
   _event: IpcMainInvokeEvent,
@@ -17,7 +16,7 @@ export async function eventRefreshMetadataFromCivitai(
   }
 
   try {
-    const model = await getModelByHash(hash);
+    const model = await getModelByHash(hash, { includeDescription: true });
     console.log('[Refresh] Fetched model from Civitai:', model.modelName, 'previewImageUrl:', !!model.previewImageUrl);
     const updatedFile: Resource = {
       ...existingFile,
@@ -31,11 +30,8 @@ export async function eventRefreshMetadataFromCivitai(
       notes: existingFile.notes,
     };
 
-    store.set(`files.${hash.toLowerCase()}`, updatedFile);
+    updateFile(updatedFile);
     createPreviewImage(updatedFile);
-
-    const files = store.get('files') as ResourcesMap;
-    getWindow().webContents.send('files-update', files);
 
     console.log('[Refresh] Successfully updated metadata for:', updatedFile.modelName);
     return updatedFile;
