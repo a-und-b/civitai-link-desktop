@@ -235,11 +235,6 @@ export function setSettings(settings: Settings) {
 }
 
 export function clearSettings() {
-  // TODO: I dont think this works from the store
-  store.set('settings', { nsfw: false, alwaysOnTop: false, concurrent: 10, baseModelSubfolders: false, scanOnStartup: false });
-  store.set('apiKey', null);
-  store.set('user', null);
-  store.set('apiKey', null);
   store.clear();
 }
 
