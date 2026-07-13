@@ -1,9 +1,9 @@
 import axios from 'axios';
+import { randomUUID } from 'crypto';
 import { Notification, ipcMain } from 'electron';
 import fs from 'fs';
 import path from 'path';
 import { pipeline } from 'stream/promises';
-import { v4 as uuid } from 'uuid';
 import { getWindow } from './browser-window';
 import { registerInProgress, unregisterInProgress } from './download-in-progress';
 import { getRootResourcePath } from './store/store';
@@ -113,7 +113,7 @@ export async function vaultDownload({
   const filePath = path.resolve(dirPath, resource.name);
 
   // Temp file path
-  const tempFileName = uuid();
+  const tempFileName = randomUUID();
   const tempDirPath = path.resolve(getRootResourcePath(), 'tmp');
   const tempFilePath = path.resolve(tempDirPath, tempFileName);
 
