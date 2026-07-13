@@ -8,10 +8,9 @@ import duration from 'dayjs/plugin/duration';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { AiOutlineCloseCircle } from 'react-icons/ai';
 import { useApi } from '@/hooks/use-api';
-import { getResourceDisplayName, isVideoPreview } from '@/lib/utils';
+import { cn, getResourceDisplayName, isVideoPreview } from '@/lib/utils';
 import { Image } from 'lucide-react';
 import { useFile } from '@/providers/files';
-import classnames from 'classnames';
 import { NavLink } from 'react-router-dom';
 
 dayjs.extend(duration);
@@ -65,7 +64,7 @@ export function FilesItem({ resource }: FilesItemProps) {
         <NavLink to={`/files/${resource.hash}`} reloadDocument>
           {({ isActive }) => (
             <CardContent
-              className={classnames('group-hover:bg-muted', {
+              className={cn('group-hover:bg-muted', {
                 'bg-muted': isActive,
               })}
             >

@@ -10,7 +10,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { useApi } from '@/hooks/use-api';
-import classNames from 'classnames';
+import { cn } from '@/lib/utils';
 import { CloudOff } from 'lucide-react';
 
 type VaultItemDeleteProps = {
@@ -47,7 +47,7 @@ export function VaultItemDelete({
             className={
               className
                 ? className
-                : classNames('absolute w-6 h-6 cursor-pointer', {
+                : cn('absolute w-6 h-6 cursor-pointer', {
                     'top-3 left-3': align === 'left',
                     'top-1/2 right-3 transform -translate-y-1/2':
                       align === 'right',

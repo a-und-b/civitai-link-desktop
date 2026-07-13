@@ -5,8 +5,7 @@ import { SafeHtml } from '@/components/ui/safe-html';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { useApi } from '@/hooks/use-api';
-import { getResourceDisplayName, isVideoPreview } from '@/lib/utils';
-import classnames from 'classnames';
+import { cn, getResourceDisplayName, isVideoPreview } from '@/lib/utils';
 import dayjs from 'dayjs';
 import { Check, Copy, DownloadCloud, Image } from 'lucide-react';
 import prettyBytes from 'pretty-bytes';
@@ -158,7 +157,7 @@ export function File() {
                       {file.trainedWords.map((word, i) => (
                         <Badge
                           variant="modelTag"
-                          className={classnames('cursor-pointer', {
+                          className={cn('cursor-pointer', {
                             '!dark:bg-[#2f9e44]/20 !bg-[#2f9e44]/20 !text-[#B2F2BB] !dark:text-[#B2F2BB]':
                               isCopied === i,
                           })}
