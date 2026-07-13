@@ -50,7 +50,6 @@
     "axios": "^1.6.5",
     "chokidar": "^3.5.3",
     "class-variance-authority": "^0.7.0",
-    "classnames": "^2.5.1",
     "clsx": "^2.1.0",
     "dayjs": "^1.11.10",
     "electron-context-menu": "^4.0.4",
@@ -71,8 +70,6 @@
     "socket.io-client": "^4.7.4",
     "tailwind-merge": "^2.2.0",
     "tailwindcss-animate": "^1.0.7",
-    "ts-node": "^10.9.2",
-    "uuid": "^9.0.1",
     "virtua": "^0.31.0",
     "workerpool": "^9.1.1",
     "yaml": "^2.4.1"
@@ -100,6 +97,7 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "tailwindcss": "^3.4.1",
+    "ts-node": "^10.9.2",
     "typescript": "^5.3.3",
     "vite": "^5.0.11"
   }
