@@ -1,16 +1,11 @@
 export type Task = () => Promise<void>;
-type TaskGenerator = () => Task | null;
-
-function isTaskGenerator(arg: any): arg is TaskGenerator {
-  return typeof arg === 'function';
-}
 
 type LimitConcurrencyOptions = {
   limit: number;
   betweenTasksFn?: () => Promise<void>;
 };
 export function limitConcurrency(
-  tasksOrGenerator: Task[] | TaskGenerator,
+  tasks: Task[],
   options?: LimitConcurrencyOptions | number
 ): Promise<void> {
   if (typeof options === 'number') options = { limit: options } as LimitConcurrencyOptions;
@@ -21,16 +16,11 @@ export function limitConcurrency(
     let active = 0;
     let finished = false;
     let index = 0;
-    const isGenerator = isTaskGenerator(tasksOrGenerator);
-    const tasks = isGenerator ? [] : (tasksOrGenerator as Task[]);
 
     const getNextTask = async (): Promise<Task | null> => {
       if (betweenTasksFn) await betweenTasksFn();
-      if (isGenerator) return tasksOrGenerator();
-      else {
-        if (index < tasks.length) return tasks[index++];
-        return null;
-      }
+      if (index < tasks.length) return tasks[index++];
+      return null;
     };
 
     const checkFinished = () => {
