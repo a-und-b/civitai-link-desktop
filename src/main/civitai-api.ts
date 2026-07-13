@@ -112,11 +112,20 @@ export const getModelByVersionId = async (
   }
 };
 
-export const getModelByHash = async (hash: string): Promise<Resource> => {
+export const getModelByHash = async (
+  hash: string,
+  options?: { includeDescription?: boolean },
+): Promise<Resource> => {
   try {
     const { data }: ModelVersionPayload = await axios.get(
       `${CIVITAI_API_URL}/model-versions/by-hash/${hash}`,
     );
+
+    const resource = buildResourceFromVersionData(data, hash);
+
+    if (!options?.includeDescription) {
+      return resource;
+    }
 
     const versionDescription = data.description?.trim() || null;
     const modelDescription = data.modelId
@@ -124,7 +133,6 @@ export const getModelByHash = async (hash: string): Promise<Resource> => {
       : null;
     const description = modelDescription || versionDescription;
 
-    const resource = buildResourceFromVersionData(data, hash);
     return {
       ...resource,
       description: description || resource.description,

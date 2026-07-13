@@ -16,7 +16,9 @@ type ResourcesAddParams = {
 export async function resourcesAdd(params: ResourcesAddParams) {
   const payload = params.payload;
   const hashLowercase = payload.hash.toLowerCase();
-  const modelInfo = await getModelByHash(hashLowercase);
+  const modelInfo = await getModelByHash(hashLowercase, {
+    includeDescription: true,
+  });
   const {
     previewImageUrl,
     civitaiUrl,
