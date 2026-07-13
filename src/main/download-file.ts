@@ -5,12 +5,10 @@ import path from 'path';
 import { pipeline } from 'stream/promises';
 import { performance } from 'perf_hooks';
 import { Socket } from 'socket.io-client';
-import { v4 as uuid } from 'uuid';
 import { filterResourcesList } from './commands/filter-reources-list';
 import { registerInProgress, unregisterInProgress } from './download-in-progress';
 import { updateActivity } from './store/activities';
 import { addFile } from './store/files';
-import { getRootResourcePath } from './store/store';
 import { getSettings } from './store/store';
 import { findOrCreateFolder } from './utils/find-or-create-folder';
 import { readMetadata } from './utils/read-metadata';
@@ -22,7 +20,7 @@ type DownloadChunkParams = {
   start: number;
   end: number;
   index: number;
-  tempFilePath: string;
+  filePath: string;
   abortController: AbortController;
   progressCallback: (index: number, loaded: number, total?: number) => void;
 };
@@ -32,7 +30,7 @@ async function downloadChunk({
   start,
   end,
   index,
-  tempFilePath,
+  filePath,
   abortController,
   progressCallback,
 }: DownloadChunkParams) {
@@ -53,32 +51,16 @@ async function downloadChunk({
     progressCallback(index, loaded, chunkTotal);
   });
 
-  const writeStream = fs.createWriteStream(`${tempFilePath}.part${index}`);
+  // Write straight into the final file at this chunk's byte offset instead
+  // of a separate temp part-file, avoiding a full copy-merge pass afterward.
+  const writeStream = fs.createWriteStream(filePath, { flags: 'r+', start });
   await pipeline(response.data, writeStream);
 }
 
 async function getFileSize(url: string) {
-  const CancelToken = axios.CancelToken;
-  const source = CancelToken.source();
-
-  try {
-    const response = await axios.get(url, {
-      cancelToken: source.token,
-      responseType: 'stream',
-    });
-
-    // Get the content-length from the headers
-    const contentLength = response.headers['content-length'];
-    source.cancel('Got the content length, aborting the request');
-    return parseInt(contentLength, 10);
-  } catch (error) {
-    if (axios.isCancel(error)) {
-      console.log('Request canceled:', error.message);
-      return;
-    } else {
-      throw error;
-    }
-  }
+  const response = await axios.head(url);
+  const contentLength = response.headers['content-length'];
+  return contentLength ? parseInt(contentLength, 10) : undefined;
 }
 
 type DownloadFileParams = {
@@ -116,14 +98,18 @@ export async function downloadFile({
   const dirPath = path.resolve(__dirname, '', downloadPath);
   const filePath = path.resolve(dirPath, resource.name);
 
-  // Temp file path
-  const tempFileName = uuid();
-  const tempDirPath = path.resolve(getRootResourcePath(), 'tmp');
-  const tempFilePath = path.resolve(tempDirPath, tempFileName);
+  findOrCreateFolder(path.dirname(filePath));
 
-  // Creates temp folder if it doesnt exist, also ensures that the main dir exists
-  if (!fs.existsSync(tempDirPath)) {
-    fs.mkdirSync(tempDirPath, { recursive: true });
+  // Preallocate the destination file so each chunk can be written directly
+  // at its byte offset. Register as in-progress first so the folder watcher
+  // ignores it while chunks are still being written.
+  registerInProgress(filePath);
+  fs.closeSync(fs.openSync(filePath, 'w'));
+  fs.truncateSync(filePath, fileSize);
+
+  async function cleanupPartialDownload() {
+    unregisterInProgress(filePath);
+    await fs.promises.rm(filePath, { force: true });
   }
 
   // Must register before we await the downloadChunk
@@ -137,6 +123,8 @@ export async function downloadFile({
       controller.abort();
 
       mainWindow.setProgressBar(-1);
+
+      void cleanupPartialDownload();
 
       // Let server know its canceled
       socket.emit('commandStatus', {
@@ -225,8 +213,6 @@ export async function downloadFile({
     }
   };
 
-  findOrCreateFolder(path.dirname(filePath));
-
   const promises: Promise<void>[] = [];
 
   // Create the promises for each chunk
@@ -244,136 +230,77 @@ export async function downloadFile({
         end,
         index: i,
         progressCallback: updateProgress,
-        tempFilePath,
+        filePath,
         abortController: controller,
       }),
     );
   }
 
-  await Promise.all(promises);
-
-  // Merge phase: send progress updates so UI doesn't appear stuck
-  const mergeProgressStart = 95;
-  const mergeProgressRange = 5;
-  mainWindow.webContents.send(`resource-download:${resource.id}`, {
-    progress: mergeProgressStart,
-    merging: true,
-    downloading: true,
-  });
-  socket.emit('commandStatus', {
-    status: 'processing',
-    progress: mergeProgressStart,
-    merging: true,
-    updatedAt: new Date().toISOString(),
-    type: 'resources:add',
-    id: resource.id,
-    resource: { totalLength: fileSize, ...resource },
-  });
-
-  registerInProgress(filePath);
-  const writeStream = fs.createWriteStream(filePath);
   try {
-    for (let i = 0; i < NUMBER_PARTS; i++) {
-      const chunkPath = `${tempFilePath}.part${i}`;
-      await appendChunkToStream(chunkPath, writeStream);
-      fs.unlinkSync(chunkPath); // Clean up chunk file after merging
-
-      const mergeProgress =
-        mergeProgressStart +
-        (mergeProgressRange * (i + 1)) / NUMBER_PARTS;
-      mainWindow.webContents.send(`resource-download:${resource.id}`, {
-        progress: mergeProgress,
-        merging: true,
-        downloading: true,
-      });
-      socket.emit('commandStatus', {
-        status: 'processing',
-        progress: mergeProgress,
-        merging: true,
-        updatedAt: new Date().toISOString(),
-        type: 'resources:add',
-        id: resource.id,
-        resource: { totalLength: fileSize, ...resource },
-      });
-    }
+    await Promise.all(promises);
   } catch (err) {
-    unregisterInProgress(filePath);
+    await cleanupPartialDownload();
     throw err;
   }
 
-  async function onEnd() {
-    unregisterInProgress(filePath);
-    console.log("Downloaded to: '" + downloadPath + "'!");
-    const timestamp = new Date().toISOString();
+  unregisterInProgress(filePath);
+  console.log("Downloaded to: '" + downloadPath + "'!");
+  const timestamp = new Date().toISOString();
 
-    const metadata = await readMetadata(filePath);
+  const metadata = await readMetadata(filePath).catch((err) => {
+    console.error('Error reading metadata for', filePath, err);
+    return undefined;
+  });
 
-    const fileData = {
-      downloadDate: timestamp,
-      totalLength: fileSize,
-      localPath: filePath,
-      metadata,
-      ...resource,
-    };
+  const fileData = {
+    downloadDate: timestamp,
+    totalLength: fileSize,
+    localPath: filePath,
+    metadata,
+    ...resource,
+  };
 
-    const activity: ActivityItem = {
-      name: resource.modelName ?? resource.name ?? 'Unknown',
-      date: timestamp,
-      type: 'downloaded' as ActivityType,
-      civitaiUrl: resource.civitaiUrl,
-    };
+  const activity: ActivityItem = {
+    name: resource.modelName ?? resource.name ?? 'Unknown',
+    date: timestamp,
+    type: 'downloaded' as ActivityType,
+    civitaiUrl: resource.civitaiUrl,
+  };
 
-    updateActivity(activity);
-    await addFile(fileData);
+  updateActivity(activity);
+  await addFile(fileData);
 
-    new Notification({
-      title: 'Download Complete',
-      body: resource.name,
-    }).show();
+  new Notification({
+    title: 'Download Complete',
+    body: resource.name,
+  }).show();
 
-    // Reset progress bar
-    mainWindow.setProgressBar(-1);
+  // Reset progress bar
+  mainWindow.setProgressBar(-1);
 
-    // Updates the UI with the final progress
-    mainWindow.webContents.send(`resource-download:${resource.id}`, {
-      progress: 100,
-      merging: false,
-      downloading: false,
-    });
+  // Updates the UI with the final progress
+  mainWindow.webContents.send(`resource-download:${resource.id}`, {
+    progress: 100,
+    downloading: false,
+  });
 
-    // Send newly added resource to server
-    socket.emit('commandStatus', {
-      status: 'success',
-      progress: 100,
-      updatedAt: timestamp,
-      resource: fileData,
-      id: resource.id,
-      type: 'resources:add',
-    });
+  // Send newly added resource to server
+  socket.emit('commandStatus', {
+    status: 'success',
+    progress: 100,
+    updatedAt: timestamp,
+    resource: fileData,
+    id: resource.id,
+    type: 'resources:add',
+  });
 
-    // Send entire list of resources to server
-    const newPayload = filterResourcesList();
-    socket.emit('commandStatus', {
-      type: 'resources:list',
-      resources: newPayload,
-    });
-  }
-
-  writeStream.end(onEnd);
+  // Send entire list of resources to server
+  const finalPayload = filterResourcesList();
+  socket.emit('commandStatus', {
+    type: 'resources:list',
+    resources: finalPayload,
+  });
 
   const totalTime = (performance.now() - startTime) / 1000;
   console.log(`Total time: ${totalTime.toFixed(2)} seconds`);
-}
-
-function appendChunkToStream(
-  chunkPath: string,
-  writeStream: fs.WriteStream,
-): Promise<void> {
-  const readStream = fs.createReadStream(chunkPath);
-  return new Promise((resolve, reject) => {
-    readStream.pipe(writeStream, { end: false });
-    readStream.on('end', resolve);
-    readStream.on('error', reject);
-    writeStream.on('error', reject);
-  });
 }
