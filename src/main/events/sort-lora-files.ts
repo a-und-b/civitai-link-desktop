@@ -4,7 +4,12 @@ import { IpcMainInvokeEvent } from 'electron';
 import { getWindow } from '../browser-window';
 import { hash } from '../hash';
 import { getModelByHash } from '../civitai-api';
-import { BASE_MODEL_FOLDERS, getResourcePath, Resources } from '../store/store';
+import {
+  BASE_MODEL_FOLDERS,
+  getResourcePath,
+  Resources,
+  UNKNOWN_BASE_MODEL_FOLDER,
+} from '../store/store';
 import { limitConcurrency, sleep } from '../utils/concurrency-helpers';
 import { findOrCreateFolder } from '../utils/find-or-create-folder';
 import { searchFile, updateFile } from '../store/files';
@@ -12,7 +17,7 @@ import { createPreviewImage } from '../utils/create-preview-image';
 import { createModelJson } from '../utils/create-model-json';
 
 const FILE_TYPES = ['.pt', '.safetensors', '.ckpt', '.bin'];
-const UNKNOWN_SUBFOLDER = 'Unknown';
+const UNKNOWN_SUBFOLDER = UNKNOWN_BASE_MODEL_FOLDER;
 
 function listModelFilenamesInDir(dirPath: string): string[] {
   if (!fs.existsSync(dirPath)) {

@@ -46,6 +46,7 @@ export const BASE_MODEL_FOLDERS: Record<string, string> = {
   'Imagen4': 'Imagen4',
   'Kling': 'Kling',
   'Kolors': 'Kolors',
+  'Krea 2': 'Krea2',
   'LTXV': 'LTXV',
   'LTXV2': 'LTXV2',
   'LTXV 2.3': 'LTXV-2.3',
@@ -411,6 +412,12 @@ export function getAllPaths() {
   return resourceKeys.map((key) => getResourcePath(key)).filter((p) => p !== '');
 }
 
+// Fallback subfolder for base models Civitai hasn't been mapped yet (e.g. a
+// brand-new model release). Keeps unrecognized models out of the resource
+// root instead of silently dropping them there; `Sort LoRA Files` in
+// Settings can re-sort these once BASE_MODEL_FOLDERS is updated.
+export const UNKNOWN_BASE_MODEL_FOLDER = 'Unknown';
+
 /**
  * Get the resource path with optional base model subfolder
  * When baseModelSubfolders setting is enabled, LoRAs, LoCons, and DoRAs
@@ -420,7 +427,6 @@ export function getResourcePathWithBaseModel(
   resourceType: string,
   baseModel?: string,
 ) {
-  const resource = resourceType.toUpperCase();
   const settings = getSettings();
 
   // Get the base resource path
@@ -431,18 +437,21 @@ export function getResourcePathWithBaseModel(
     return basePath;
   }
 
-  // Only apply to LORA, LOCON, and DORA
+  // Only apply to LORA, LOCON, and DORA. Normalize to the canonical enum
+  // value first, since Civitai sends types like 'lora' / 'LORA'.
+  const resourceStoreKey = getResourceStoreKey(resourceType);
   const applicableTypes = [Resources.LORA, Resources.LOCON, Resources.DORA];
-  if (!applicableTypes.includes(resource as Resources)) {
+  if (!applicableTypes.includes(resourceStoreKey as Resources)) {
     return basePath;
   }
 
-  // If no base model provided or not in mapping, use base path
-  if (!baseModel || !BASE_MODEL_FOLDERS[baseModel]) {
+  // No base model info at all - use base path (can't even bucket as Unknown)
+  if (!baseModel) {
     return basePath;
   }
 
-  // Return path with base model subfolder
-  const subfolderName = BASE_MODEL_FOLDERS[baseModel];
+  // Known base model -> its dedicated subfolder; unrecognized (e.g. a newly
+  // released model Civitai added) -> Unknown, rather than the resource root
+  const subfolderName = BASE_MODEL_FOLDERS[baseModel] ?? UNKNOWN_BASE_MODEL_FOLDER;
   return path.join(basePath, subfolderName);
 }
