@@ -38,16 +38,6 @@ export enum BaseModels {
   PONY = 'Pony',
 }
 
-export const reduceFileMap = (
-  acc: Record<string, Resource>,
-  file: Resource,
-): Record<string, Resource> => {
-  return {
-    ...acc,
-    [file.hash]: file,
-  };
-};
-
 export const sortResource = (
   a: Resource,
   b: Resource,

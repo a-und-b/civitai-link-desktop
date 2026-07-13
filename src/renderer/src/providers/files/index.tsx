@@ -13,7 +13,6 @@ import {
   sortResource,
 } from '@/lib/search-filter';
 import Fuse, { type FuseResult, type Expression } from 'fuse.js';
-import { isEqual } from 'lodash';
 
 type RemoveActivityParams = {
   hash: string;
@@ -81,6 +80,13 @@ function mapHashToFuse(files: Record<string, Resource>) {
     score: 1,
     refIndex: idx,
   }));
+}
+
+// Cheap positional comparison instead of a deep-equality check, which on
+// large libraries costs as much as the render it's meant to avoid.
+function isSameResultOrder(a: { item: Resource }[], b: { item: Resource }[]) {
+  if (a.length !== b.length) return false;
+  return a.every((result, i) => result.item.hash === b[i].item.hash);
 }
 
 export function FileProvider({ children }: { children: React.ReactNode }) {
@@ -161,7 +167,7 @@ export function FileProvider({ children }: { children: React.ReactNode }) {
         return sortResource(a.item, b.item, sortType, sortDirection);
       })
 
-      if (!isEqual(sortedResults, fuseList)) {
+      if (!isSameResultOrder(sortedResults, fuseList)) {
         setFuseList(sortedResults);
       }
     },

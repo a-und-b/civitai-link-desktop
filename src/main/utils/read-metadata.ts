@@ -1,78 +1,75 @@
 import fs from 'fs';
-import { TextDecoder } from 'util';
+
+const HEADER_SIZE_BYTES = 8;
+// Safetensors headers are a small JSON blob; anything larger signals a
+// corrupt file or a non-safetensors file whose leading bytes happened to
+// decode into a large length.
+const MAX_METADATA_BYTES = 100 * 1024 * 1024;
 
 export async function readMetadata(
   filePath: string,
 ): Promise<Record<string, any> | string> {
-  return new Promise((resolve, reject) => {
-    const stream = fs.createReadStream(filePath, { highWaterMark: 64 * 1024 });
-    let buffer = Buffer.alloc(0);
-    let metadataLen = -1;
+  const fileHandle = await fs.promises.open(filePath, 'r');
 
-    stream.on('data', (chunk: Buffer) => {
-      buffer = Buffer.concat([buffer, chunk]);
+  try {
+    const headerBuffer = Buffer.alloc(HEADER_SIZE_BYTES);
+    const { bytesRead: headerBytesRead } = await fileHandle.read(
+      headerBuffer,
+      0,
+      HEADER_SIZE_BYTES,
+      0,
+    );
+    if (headerBytesRead < HEADER_SIZE_BYTES) {
+      throw new Error(`${filePath} is not a safetensors file`);
+    }
 
-      if (metadataLen === -1 && buffer.length >= 8) {
-        // Convert Buffer to Uint8Array explicitly
-        const metadataLenBytes = new Uint8Array(buffer.subarray(0, 8));
-        metadataLen = new DataView(metadataLenBytes.buffer).getUint32(0, true);
+    const metadataLen = new DataView(
+      headerBuffer.buffer,
+      headerBuffer.byteOffset,
+      headerBuffer.byteLength,
+    ).getUint32(0, true);
 
-        if (metadataLen <= 2) {
-          stream.destroy(new Error(`${filePath} is not a safetensors file`));
-          return;
-        }
-      }
+    if (metadataLen <= 2 || metadataLen > MAX_METADATA_BYTES) {
+      throw new Error(`${filePath} is not a safetensors file`);
+    }
 
-      if (metadataLen !== -1 && buffer.length >= 10 + metadataLen - 2) {
-        stream.destroy(); // Stop reading the file
+    const metadataBuffer = Buffer.alloc(metadataLen);
+    const { bytesRead } = await fileHandle.read(
+      metadataBuffer,
+      0,
+      metadataLen,
+      HEADER_SIZE_BYTES,
+    );
+    if (bytesRead < metadataLen) {
+      throw new Error(`${filePath} is not a safetensors file`);
+    }
 
-        // Use subarray and new Uint8Array for type-safe conversion
-        const jsonStartBytes = new Uint8Array(buffer.subarray(8, 10));
-        const jsonStartStr = new TextDecoder().decode(jsonStartBytes);
-        if (!["{'", '{"'].includes(jsonStartStr)) {
-          reject(new Error(`${filePath} is not a safetensors file`));
-          return;
-        }
+    const jsonStartStr = metadataBuffer.toString('utf8', 0, 2);
+    if (!["{'", '{"'].includes(jsonStartStr)) {
+      throw new Error(`${filePath} is not a safetensors file`);
+    }
 
-        const jsonDataBytes = new Uint8Array(
-          buffer.subarray(10, 10 + metadataLen - 2),
-        );
-        const jsonDataStr =
-          jsonStartStr + new TextDecoder().decode(jsonDataBytes);
-        let jsonObj;
+    let jsonObj;
+    try {
+      jsonObj = JSON.parse(metadataBuffer.toString('utf8'));
+    } catch {
+      throw new Error('Failed to parse metadata JSON');
+    }
+
+    const res: Record<string, any> = {};
+    for (const [k, v] of Object.entries(jsonObj['__metadata__'] || {})) {
+      res[k] = v;
+      if (typeof v === 'string' && v.startsWith('{')) {
         try {
-          jsonObj = JSON.parse(jsonDataStr);
-        } catch (err) {
-          reject(new Error('Failed to parse metadata JSON'));
-          return;
+          res[k] = JSON.parse(v);
+        } catch {
+          // Ignore the error and use the original string
         }
-
-        const res: Record<string, any> = {};
-        for (const [k, v] of Object.entries(jsonObj['__metadata__'] || {})) {
-          res[k] = v;
-          if (typeof v === 'string' && v.startsWith('{')) {
-            try {
-              res[k] = JSON.parse(v);
-            } catch (error) {
-              // Ignore the error and use the original string
-            }
-          }
-        }
-
-        resolve(res);
       }
-    });
+    }
 
-    stream.on('error', (err) => {
-      if (err) {
-        reject('Failed to parse metadata JSON');
-      }
-    });
-
-    stream.on('close', () => {
-      if (metadataLen === -1) {
-        reject(new Error('Metadata length not found'));
-      }
-    });
-  });
+    return res;
+  } finally {
+    await fileHandle.close();
+  }
 }
