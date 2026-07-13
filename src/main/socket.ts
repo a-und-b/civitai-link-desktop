@@ -4,7 +4,6 @@ import {
   activitiesCancel,
   activitiesClear,
   activitiesList,
-  imageTxt2img,
   resourcesAdd,
   resourcesRemove,
 } from './commands';
@@ -133,9 +132,6 @@ export function socketIOConnect({ app }: socketIOConnectParams) {
         mainWindow.webContents.send('resource-remove', {
           resource: payload.resource,
         });
-        break;
-      case 'image:txt2img':
-        imageTxt2img();
         break;
       default:
         console.log(`Unknown command: ${payload['command']}`);
